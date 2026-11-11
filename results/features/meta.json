@@ -1,12 +1,12 @@
 {
   "exp_id": "features",
-  "config_hash": "cf76989e37ec",
+  "config_hash": "599820123c45",
   "config_source": "configs\\default.yaml",
-  "git_commit": "202906a8e4e8e988fef46f9cd4db7932f36825c4",
+  "git_commit": "eb6c87e54be21b3423d1372e1c38ab8f1ab62b82",
   "data_mode": "demo",
   "seed": 42,
   "sample_frac": 1.0,
   "runtime_sec": 0.0,
-  "timestamp_utc": "2026-11-11T12:19:11+00:00",
+  "timestamp_utc": "2026-11-11T12:43:20+00:00",
   "python": "3.11.15"
 }

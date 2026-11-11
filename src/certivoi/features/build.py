@@ -83,6 +83,25 @@ def manifest(cfg: Config, lab: str) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["name", "description", "group"])
 
 
+# Feature values are rounded (removes float noise such as -0.6000000000000014)
+# and then stored as float32-representable numbers. TreeSHAP's interventional
+# algorithm casts inputs to float32 but compares against float64 split
+# thresholds, while LightGBM predicts in float64; with float32-exact inputs both
+# see identical values and SHAP additivity holds (02 §6). Hours keep 2 decimals.
+FEATURE_DECIMALS = 4
+HOURS_DECIMALS = 2
+
+
+def round_features(f: pd.DataFrame) -> pd.DataFrame:
+    """Round to FEATURE_DECIMALS (hours: HOURS_DECIMALS) and make float32-exact."""
+    out = f.copy()
+    for c in out.columns:
+        hours = c.startswith("hours_") or c.endswith("_hrs")
+        v = out[c].round(HOURS_DECIMALS if hours else FEATURE_DECIMALS).to_numpy()
+        out[c] = v.astype(np.float32).astype(np.float64)
+    return out
+
+
 def _panel_codes(cfg: Config, lab: str) -> list[str]:
     return [c for c in [*cfg.labs, *cfg.feature_labs] if c != lab]
 
@@ -204,7 +223,7 @@ def build_features_lab(cfg: Config, lab: str, labels: pd.DataFrame, clean: pd.Da
     f = f.join(pd.concat(panel_frames, axis=1), on="event_id")
     names = manifest(cfg, lab)["name"].tolist()
     feats = f[["event_id", *names]].sort_values("event_id").reset_index(drop=True)
-    feats[names] = feats[names].astype(float)
+    feats[names] = round_features(feats[names].astype(float))
 
     meta = labels[["event_id", "subject_id", "hadm_id", "t"]].merge(
         ctx[["event_id", "sex", "age", "race", "in_icu", "anchor_year_group", "los_days"]],

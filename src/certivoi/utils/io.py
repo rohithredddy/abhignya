@@ -126,11 +126,19 @@ STAGE_KEYS: dict[str, list[str]] = {
 }
 
 
+# Bump when a stage's code changes in a way that invalidates cached artifacts.
+STAGE_CODE_VERSION: dict[str, int] = {"models": 4, "features": 4}
+
+
 def stage_hash(cfg: Config, stage: str) -> str:
-    """Hash of only the config keys ``stage`` depends on (see ``STAGE_KEYS``)."""
+    """Hash of the config keys ``stage`` depends on + code versions of it and upstream stages."""
     from certivoi.config import hash_dict
 
-    return hash_dict({k: cfg.get(k, None) for k in STAGE_KEYS[stage]})
+    keys = {k: cfg.get(k, None) for k in STAGE_KEYS[stage]}
+    # include code versions of this stage and every upstream stage
+    upstream = list(STAGE_KEYS)[: list(STAGE_KEYS).index(stage) + 1]
+    keys["_code_version"] = {s: STAGE_CODE_VERSION.get(s, 1) for s in upstream}
+    return hash_dict(keys)
 
 
 def stage_dir(cfg: Config, stage: str) -> Path:

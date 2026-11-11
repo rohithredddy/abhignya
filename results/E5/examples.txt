@@ -1,0 +1,25 @@
+Example explanations (open demo or synthetic data only).
+
+[demo data] HGB / potentially_useful
+Potentially useful. Predicted Hgb 11.4 g/dL (80% range 10.6–12.8), 3.4 g/dL inside the current action range (nearest threshold 8.0 g/dL); calibrated P(action change) ≈ 0.02. Why the value: last prior WBC value = 21.6 (lowers the forecast); last prior value of target lab = 11.9 (lowers the forecast); last prior K value = 4.3 (lowers the forecast). Why the uncertainty: hours since last prior INR = 5.9 (widens the range); hour of draw (0-23) = 23.0 (widens the range); maximum over last 48 h = 11.9 (widens the range). Decision support only — not a diagnosis.
+
+[demo data] HGB / high_value
+High value. Predicted Hgb 8.2 g/dL (80% range 7.4–9.2), 0.20 g/dL outside the current action range (nearest threshold 8.0 g/dL); calibrated P(action change) ≈ 1.00. Why the value: last minus second-last value = -2.8 (raises the forecast); OLS slope over last 48 h (units/day) = -2.5 (raises the forecast); last prior K value = 3.5 (raises the forecast). Why the uncertainty: OLS slope over last 48 h (units/day) = -2.5 (widens the range); last minus second-last value = -2.8 (widens the range); hour of draw (0-23) = 12.0 (widens the range). Decision support only — not a diagnosis.
+
+[demo data] K / potentially_useful
+Potentially useful. Predicted K 4.2 mEq/L (80% range 3.7–4.8), 0.71 mEq/L inside the current action range (nearest threshold 3.5 mEq/L); calibrated P(action change) ≈ 0.02. Why the value: last prior value of target lab = 4.3 (lowers the forecast); last minus second-last value = n/a (raises the forecast); hours since last prior GLU = 5.9 (lowers the forecast). Why the uncertainty: last minus second-last value = n/a (widens the range); last prior HCT value = 36.2 (widens the range); last prior value of target lab = 4.3 (narrows the range). Decision support only — not a diagnosis.
+
+[demo data] K / high_value
+High value. Predicted K 3.3 mEq/L (80% range 2.8–3.7), 0.22 mEq/L inside the current action range (nearest threshold 3.5 mEq/L); calibrated P(action change) ≈ 0.73. Why the value: last prior value of target lab = 3.0 (raises the forecast); last minus second-last value = -0.80 (raises the forecast); default action category from last value = 0.00 (raises the forecast). Why the uncertainty: last minus second-last value = -0.80 (narrows the range); default action category from last value = 0.00 (widens the range); OLS slope over last 48 h (units/day) = -1.6 (narrows the range). Decision support only — not a diagnosis.
+
+[demo data] CREAT / low_value
+Low value (certified at α = 0.01). Predicted Creatinine 1.4 mg/dL (80% range 1.1–1.6), 0.30 mg/dL inside the current action range (nearest threshold 1.7 mg/dL); calibrated P(action change) ≈ 0.00. Why the value: OLS slope over last 48 h (units/day) = -0.20 (lowers the forecast); age at draw (years) = 47.0 (lowers the forecast); admission type: emergency = 0.00 (lowers the forecast). Why the uncertainty: minimum creatinine in prior 48 h = 1.4 (narrows the range); standard deviation over last 48 h = 0.14 (narrows the range); second-last prior value (within 72 h) = 1.6 (narrows the range). Decision support only — not a diagnosis.
+
+[demo data] CREAT / potentially_useful
+Potentially useful. Predicted Creatinine 7.9 mg/dL (80% range 6.9–8.4), 0.30 mg/dL inside the current action range (nearest threshold 8.2 mg/dL); calibrated P(action change) ≈ 0.21. Why the value: OLS slope over last 48 h (units/day) = n/a (lowers the forecast); age at draw (years) = 47.0 (lowers the forecast); admission type: emergency = 0.00 (lowers the forecast). Why the uncertainty: minimum creatinine in prior 48 h = 7.9 (widens the range); maximum over last 48 h = 7.9 (widens the range); last prior value of target lab = 7.9 (widens the range). Decision support only — not a diagnosis.
+
+[demo data] CREAT / high_value
+High value. Predicted Creatinine 2.0 mg/dL (80% range 1.6–2.4), 0.00 mg/dL inside the current action range (nearest threshold 2.0 mg/dL); calibrated P(action change) ≈ 0.75. Why the value: OLS slope over last 48 h (units/day) = -1.3 (lowers the forecast); age at draw (years) = 47.0 (lowers the forecast); admission type: emergency = 0.00 (lowers the forecast). Why the uncertainty: maximum over last 48 h = 4.8 (widens the range); last minus second-last value = 0.30 (widens the range); standard deviation over last 48 h = 0.94 (widens the range). Decision support only — not a diagnosis.
+
+[demo data] PLT / potentially_useful
+Potentially useful. Predicted Platelets 14.4 K/uL (80% range 6.4–33.8), 4.4 K/uL inside the current action range (nearest threshold 10.0 K/uL); calibrated P(action change) ≈ 0.00. Why the value: last prior WBC value = 21.6 (lowers the forecast); hours from admission to draw = 8.9 (lowers the forecast); last prior GLU value = 425 (lowers the forecast). Why the uncertainty: maximum over last 48 h = 24.0 (narrows the range); last prior value of target lab = 24.0 (narrows the range); hours since last prior value = 5.9 (narrows the range). Decision support only — not a diagnosis.
