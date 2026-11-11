@@ -1,0 +1,2 @@
+results data_mode(s): ['demo']
+Only data_mode=full results are publishable (demo/synthetic are not).

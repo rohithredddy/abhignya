@@ -1,0 +1,113 @@
+% CertiVOI — IEEE conference paper skeleton (docs/06_PAPER_OUTLINE.md).
+% Every number must come from results/ (full MIMIC-IV run only; demo/synthetic
+% results are NOT publishable). Placeholders are marked TODO(result).
+% Build: pdflatex main && bibtex main && pdflatex main && pdflatex main
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{xcolor}
+\newcommand{\todo}[1]{\textcolor{red}{TODO(result): #1}}
+\graphicspath{{figures/}}
+
+\begin{document}
+
+\title{CertiVOI: Decision-Anchored, Conformally Certified and Explainable Prediction of the Information Value of Repeat Laboratory Tests}
+
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{Department, Institution\\ email}}
+
+\maketitle
+
+\begin{abstract}
+Repeat laboratory tests are frequently ordered although their results rarely change clinical management. Existing prediction models target proxies---whether a result will be \emph{normal} or \emph{stable}---and offer no guarantee on the action-changing results they would suppress. We present CertiVOI, which predicts, before a repeat test is drawn, the probability that its result changes the clinical action category (EDCP), a quantity we show equals the single-step value of information under 0--1 regret. A quantile gradient-boosting forecaster yields a predictive distribution of the new value; the probability mass outside the current action interval gives EDCP. Conformal risk control certifies a low-value tier in which the expected rate of missed action-changing results is at most $\alpha$, and a margin-versus-uncertainty decomposition with TreeSHAP explains each prediction. On MIMIC-IV repeat tests of hemoglobin, potassium, creatinine (KDIGO staging) and platelets, \todo{E1: share of action-changing results that proxy labels call normal/stable}; \todo{E3: certified reduction at $\alpha=1\%$ per lab}; \todo{E5: faithfulness}. CertiVOI runs on a CPU and is intended as decision support only.
+\end{abstract}
+
+\begin{IEEEkeywords}
+laboratory test utilization, value of information, conformal risk control, quantile regression, explainable AI, MIMIC-IV
+\end{IEEEkeywords}
+
+\section{Introduction}
+% Burden of repeat testing; Choosing Wisely. VOI view (DECIDE-Lab \cite{allenbrand2026decidelab}): a test is valuable only if its result can change the action.
+% Gap: proxy targets (normality \cite{xu2019lowyield}, stability \cite{aikens2023yield}); no guarantees; explanations not tied to decisions.
+Contributions:
+\begin{itemize}
+\item A decision-anchored target for repeat-test value---whether the result changes the action category---and evidence that it disagrees with normality and stability proxies (\todo{E1}).
+\item EDCP, computed from a quantile forecaster, with a proposition linking it to single-step value of information.
+\item To our knowledge, the first certified low-value tier for repeat laboratory tests via conformal risk control, with conditional (LTT) and group-wise (Mondrian) variants.
+\item A VOI-native explanation separating \emph{margin} to the action threshold from \emph{uncertainty}, with faithfulness evaluation.
+\end{itemize}
+
+\section{Related Work}
+\subsection{Decision-theoretic test valuation}
+% Howard \cite{howard1966}, threshold approach \cite{pauker1980}, DECIDE-Lab \cite{allenbrand2026decidelab}.
+\subsection{Machine learning for low-yield laboratory tests}
+% \cite{xu2019lowyield,yu2020deep,li2022external,huang2023confidence,aikens2023yield,rabbani2023targeting}
+\subsection{Sequential test acquisition}
+% RL / active feature acquisition \cite{yu2023drl}: powerful but data-hungry and hard to certify; out of scope.
+\subsection{Conformal decision support}
+% CRC \cite{angelopoulos2024crc}, LTT \cite{angelopoulos2021ltt}, Mondrian \cite{vovk2005alrw}.
+
+\section{Method}
+\subsection{Setup}
+An event $e=(i,h,L,t)$ is a resulted measurement $y_e$ of lab $L\in\{\mathrm{HGB},\mathrm{K},\mathrm{CREAT},\mathrm{PLT}\}$ in admission $h$ at time $t$; only \emph{repeat} events (a prior same-lab value in the same admission within 72\,h) are modeled. Features use only data recorded before $t-1$\,min.
+
+\subsection{Action maps and decision-anchored label}
+An action map $A_L$ maps a value to a category (HGB $<7$/$7$--$8$/$\ge 8$\,g/dL; K $<3.5$/$3.5$--$5.5$/$>5.5$\,mEq/L; PLT $<10$/$10$--$50$/$\ge 50$\,K/$\mu$L; creatinine: KDIGO stage from 48\,h and 7\,d baselines \cite{kdigo2012}). With default action $a^0_e=A_L(y^{\mathrm{last}}_e)$, the label is $D_e=\mathbb{1}[A_L(y_e)\neq a^0_e]$.
+
+\subsection{Distributional forecaster}
+Per lab, LightGBM \cite{ke2017lightgbm} quantile models \cite{koenker1978} for $\tau\in\{0.02,\dots,0.98\}$ predict $\Delta_e=y_e-y^{\mathrm{last}}_e$; quantiles are rearranged \cite{chernozhukov2010} and interpolated into a CDF $\hat F$.
+
+\subsection{EDCP and value of information}
+With $[l_{a},u_{a})$ the interval of category $a$,
+\begin{equation}
+\mathrm{EDCP}(x_e)=1-\big[\hat F(u_{a^0_e}\mid x_e)-\hat F(l_{a^0_e}\mid x_e)\big].
+\end{equation}
+\textbf{Proposition 1.} If the test reveals the category $c$, the clinician acts optimally given $c$ and takes $a^0$ otherwise, and regret is $r(a,c)=\mathbb{1}[a\neq c]$, then the value of information of the test equals $\Pr(c\neq a^0\mid x)$. \emph{Proof:} $\mathbb{E}_c[r(a^0,c)-r(c,c)]=\Pr(c\neq a^0\mid x)$. EDCP is isotonically calibrated on validation data to $s_e$.
+
+\subsection{Certified triage}
+A test is flagged low-value if $s_e\le\lambda$. With loss $\ell_e(\lambda)=D_e\mathbb{1}[s_e\le\lambda]$, conformal risk control \cite{angelopoulos2024crc} selects $\hat\lambda=\max\{\lambda:\frac{n}{n+1}\hat R_n(\lambda)+\frac{1}{n+1}\le\alpha\}$ on a patient-disjoint calibration set, guaranteeing $\mathbb{E}[\ell_{\mathrm{new}}(\hat\lambda)]\le\alpha$ under exchangeability. Learn-then-Test \cite{angelopoulos2021ltt} with exact binomial p-values and fixed-sequence testing bounds the false-skip rate among flagged tests by $\beta$ with probability $1-\delta$; Mondrian CRC repeats the selection within subgroups. A high-value tier uses a validation threshold with precision $\ge 0.5$.
+
+\subsection{VOI-native explanation}
+For predicted value $\hat y$, margin $m$ (signed distance to the nearest boundary of $a^0$) and width $w=\hat q_{0.9}-\hat q_{0.1}$, the ratio $\rho=m/w$ summarizes \emph{why} a test is (not) informative. Interventional TreeSHAP \cite{lundberg2017unified,lundberg2020trees} with a shared background gives $\phi^{\mathrm{med}}$ (from $\hat q_{0.5}$) and $\phi^{\mathrm{unc}}=\phi(\hat q_{0.9})-\phi(\hat q_{0.1})$; template sentences (no language model) render the explanation.
+
+\section{Experimental Setup}
+% MIMIC-IV \cite{johnson2023mimiciv}; cohort Table~\ref{tab:cohort}; splits 60/10/15/15 by patient; temporal split; baselines B1--B5; metrics; CPU and runtimes from results/*/meta.json.
+\todo{dataset version, cohort sizes from results/cohort/flow.csv, hardware and runtimes from meta.json}
+% \input{tables/table1_cohort}
+
+\section{Results}
+\subsection{Decision-anchored labels differ from proxies}
+\todo{results/E1/table2\_labels.csv} % \input{tables/table2_labels}
+% Fig.~\ref{fig:proxy}
+\subsection{Predicting action change}
+\todo{results/E2/table3\_performance.csv} % \input{tables/table3_performance}
+\subsection{Certified reduction}
+\todo{results/E3/table4\_certified.csv --- report every lab and $\alpha$, including small reductions at tight $\alpha$} % \input{tables/table4_certified}
+\subsection{Robustness}
+\todo{results/E4/ subgroups and temporal shift} % \input{tables/table5_subgroups}
+\subsection{Explanations}
+\todo{results/E5/rho\_vs\_edcp.csv and table6\_faithfulness.csv; example explanations from synthetic or demo data only}
+\subsection{Ablations}
+\todo{results/E6/table7\_ablations.csv}
+
+% Example figure block (uncomment once results exist):
+% \begin{figure}[t]\centering
+% \includegraphics[width=\columnwidth]{fig4_risk_reduction}
+% \caption{Realised risk vs. reduction; markers are CRC operating points.}\label{fig:crc}
+% \end{figure}
+
+\section{Discussion}
+% Clinical interpretation; when certification is conservative; selection bias and confounding by intervention (tests ordered because clinicians expected change); threshold choice (E4 sensitivity); single-centre data and exchangeability (temporal shift); relation to sequential (POMDP) value---future work.
+
+\section{Conclusion}
+% One paragraph.
+
+\section*{Ethics and Data Statement}
+This study uses de-identified data from MIMIC-IV under the PhysioNet Credentialed Health Data Use Agreement. No individual-level data appear in this paper; all reported quantities are aggregates. CertiVOI is a research prototype for decision support; it does not diagnose, has not been clinically validated, and must not be used to cancel orders without clinician review.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}

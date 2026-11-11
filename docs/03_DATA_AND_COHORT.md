@@ -82,6 +82,8 @@ Report a cohort flow table (counts after each step, per lab) — Table 1 of the 
 
 **Never as features:** race, insurance (subgroup evaluation only); anything from the future; discharge-time codes.
 
+**Implementation notes.** History windows use same-admission values strictly before t − 1 min; the target-lab window is the 72 h look-back (count/trend features use 24 h / 48 h sub-windows); cross-lab features use an ASOF join with the same strict cut-off. `in_icu` = an ICU stay that started before t − 1 min and has not ended at t. Admission length (`dischtime`) is used only for the cohort filter and as the patient-days denominator in E3, never as a feature. Feature values are rounded (4 decimals; hours 2) and stored float32-exact (see 02 §6). The leakage test (`tests/test_leakage.py`) perturbs all raw lab rows at/after a per-admission cut-off, re-runs the pipeline from raw files, and asserts that features of all earlier events are unchanged; it was checked to fail when a leak is planted.
+
 ## 8. Storage & compute plan (CPU)
 
 - Use **DuckDB** to read `labevents.csv.gz` directly, filter by itemid and cohort, and write **Parquet** to `data/interim/` once. Never load the full labevents table into pandas.

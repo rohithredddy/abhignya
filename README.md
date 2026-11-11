@@ -40,15 +40,16 @@ certivoi/
 ├── docs/                   # proposal, methodology, data, experiments, roadmap, paper outline, references
 ├── src/certivoi/
 │   ├── config.py
-│   ├── data/      (extract.py, cohort.py, split.py)
+│   ├── data/      (extract.py, verify.py, cohort.py, split.py, synthetic.py)
 │   ├── labels/    (actions.py, build.py)
 │   ├── features/  (build.py)
-│   ├── models/    (baselines.py, quantile.py)
+│   ├── models/    (baselines.py, quantile.py, train.py)
 │   ├── voi/       (edcp.py)
 │   ├── conformal/ (crc.py, ltt.py, mondrian.py)
 │   ├── triage.py
 │   ├── explain/   (decompose.py, shap_attr.py, templates.py, faithfulness.py)
-│   ├── eval/      (metrics.py, bootstrap.py)
+│   ├── eval/      (metrics.py)
+│   ├── experiments/ (e1.py … e6.py)
 │   ├── viz/       (style.py, figures.py)
 │   └── utils/     (seed.py, io.py, logging.py)
 ├── scripts/       (00_download_demo.sh, 01_verify_items.py, run.py, make_figures.py)
@@ -61,12 +62,40 @@ certivoi/
 
 ## Quick start (development on open demo data)
 ```bash
-python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
+# Python 3.11 (CONTRIBUTING.md §7). With uv:  uv venv --python 3.11 .venv
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scriptsctivate
 pip install -r requirements.txt && pip install -e .
 bash scripts/00_download_demo.sh                       # MIMIC-IV demo → data/raw/mimic-iv-demo
-pytest -q
-python scripts/run.py all --config configs/default.yaml
+pytest -q                                              # 122 tests, synthetic data only
+python scripts/run.py all --config configs/default.yaml   # ~2 min on the demo
+python scripts/make_figures.py                         # results/ → paper/figures, paper/tables
 ```
+
+No data at all? Set `data.mode: synthetic` (and a fresh `data.root`) in an override file:
+the pipeline generates a synthetic MIMIC-schema dataset and runs end to end.
+
+### Commands
+| Command | What it does | Output |
+|---|---|---|
+| `run.py verify` | itemid / unit check against `d_labitems` (fails loudly) | `results/verify_items/` |
+| `run.py extract` | raw CSV.gz → filtered Parquet (DuckDB) | `data/interim/extract/` |
+| `run.py cohort` | cohort steps, repeat events, flow table | `results/cohort/flow.csv` |
+| `run.py split` | patient-level + temporal splits | `data/interim/split/` |
+| `run.py labels` | a0, D, N, S (+ KDIGO for creatinine) | `data/interim/labels/` |
+| `run.py features` | strictly-prior features + manifest | `results/features/` |
+| `run.py train [--lab L]` | quantile LightGBM, EDCP, isotonic, B1–B5 | `data/interim/models/` |
+| `run.py exp E1..E6` | one experiment | `results/E*/` |
+| `run.py all` | everything above, then E1–E6 | `results/` |
+
+Common flags: `--override extra.yaml`, `--sample-frac 0.05`, `--force`. Stages cache
+their outputs under `data/interim/<stage>/<hash>/`, keyed by the config keys (and code
+version) each stage depends on.
+
+## Status
+Phases 0–7 and the Phase 9 paper skeleton are implemented and tested (see `PROGRESS.md`).
+Results in `results/` currently come from the **open demo (100 patients) and are not
+publishable**; the full MIMIC-IV run is done locally by the data owner. Phase 8
+(Streamlit demo) is not started — it needs the `streamlit` dependency approved.
 
 ## Full MIMIC-IV runs
 1. Obtain credentialed access on PhysioNet (CITI training + DUA).

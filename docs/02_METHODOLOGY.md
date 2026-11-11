@@ -22,6 +22,8 @@ Each lab has an **action map** $A_L$ that converts a value (and, for creatinine,
 | PLT | K/µL | `<10` prophylactic transfusion · `10–<50` procedure-dependent · `≥50` no action | Platelet transfusion guidance (AABB) |
 | CREAT | mg/dL | KDIGO AKI stage 0/1/2/3 computed from the new value relative to the min in prior 48 h (≥0.3 rise) and prior 7 days (≥1.5×, 2×, 3×; or ≥4.0) | KDIGO 2012 (creatinine criteria only; no urine output) |
 
+**Boundary convention.** Intervals are left-closed by default (HGB exactly 7.0 → borderline; PLT exactly 50 → no action). Potassium follows the table above: exactly 5.5 is *no action* (config `actions.K.at_boundary_upper: [true, false]`). Creatinine staging uses a 1e-9 tolerance so that, e.g., 1.0 + 0.3 counts as a 0.3 mg/dL rise despite floating-point rounding. KDIGO baselines are the minimum prior creatinine in the same admission within 48 h / 7 d, strictly before t − 1 min (rule as in the MIMIC-code `kdigo_creatinine` concept).
+
 **Default action (prior belief):** $a^0_e = A_L(y^{\text{last}}_e)$ (for CREAT: the AKI stage at the last measurement).
 
 **Decision-anchored label:**
@@ -34,7 +36,7 @@ $D_e=1$ means the test was **action-changing** (high information).
 
 ## 3. Distributional forecaster
 
-Target: $\Delta_e = y_e - y^{\text{last}}_e$ (for CREAT, model $y_e$ directly or $\Delta$; pick by validation pinball loss and log the decision).
+Target: $\Delta_e = y_e - y^{\text{last}}_e$ (for CREAT, model $y_e$ directly or $\Delta$; pick by validation pinball loss and log the decision). *Implemented:* with `model.creat_target: auto`, CREAT fits both targets and keeps the one with lower mean validation pinball loss on the y scale; the choice is written to `results/E2/hyperparams.json` (`target`).
 
 For each lab separately, train LightGBM quantile models $\hat q_\tau(x)$ for $\tau \in \mathcal{T} = \{0.02, 0.05, 0.10, \dots, 0.90, 0.95, 0.98\}$ (pinball loss). Post-process:
 1. **Non-crossing:** sort predicted quantiles per row (monotone rearrangement).
@@ -70,6 +72,8 @@ Default $\alpha \in \{0.005, 0.01, 0.02, 0.05\}$; grid $\Lambda$ = unique calibr
 ### 5.2 Learn-then-Test (secondary, conditional)
 False-skip rate among flagged: $\text{FSR}(\lambda) = \Pr(D=1 \mid s \le \lambda)$. For an increasing grid $\lambda_1<\lambda_2<\dots$, test $H_j: \text{FSR}(\lambda_j) > \beta$ with an exact binomial (Clopper–Pearson) p-value on the flagged calibration subset; **fixed-sequence testing** from the smallest $\lambda$, stop at first non-rejection. Guarantee: with probability $\ge 1-\delta$, $\text{FSR}(\hat\lambda) \le \beta$. Defaults: $\beta \in \{0.02, 0.05\}$, $\delta = 0.1$.
 
+*Grid (implementation decision).* A grid of every unique calibration score starts with one flagged event, whose p-value $1-\beta$ is never $\le\delta$, so fixed-sequence testing would always stop at once. The grid is therefore `conformal.ltt.grid_size` (=100) calibration-score order statistics whose flagged counts run evenly from $n_{\min}=\lceil \log\delta / \log(1-\beta)\rceil$ (the smallest count at which rejection is possible; 45 for β = 0.05, δ = 0.1) to $n$. The grid depends only on scores, β and δ, never on labels. With small calibration sets (e.g. the demo) LTT may flag nothing; this is reported, not hidden.
+
 ### 5.3 Mondrian (group-conditional) variant
 Run 5.1 separately within groups $G$ (sex; age band <45/45–65/65–80/>80; race group; ICU vs ward). Report validity and reduction per group, global vs. Mondrian.
 
@@ -89,6 +93,8 @@ Per event, compute:
 Feature attribution (interventional TreeSHAP, shared background of ~200 training rows):
 - $\phi^{\text{med}} = \text{SHAP}(\hat q_{0.5})$ → *why the predicted value is where it is* (drives margin).
 - $\phi^{\text{unc}} = \text{SHAP}(\hat q_{0.9}) - \text{SHAP}(\hat q_{0.1})$ → *why the model is (un)certain* (valid by linearity of SHAP in model output with a common background).
+
+*Implementation notes (needed for exact additivity, checked in E5: max |Σφ + base − output| ≤ 1e-3):* (i) each quantile booster is truncated to its early-stopping iteration, so SHAP explains exactly the model used for prediction; (ii) features are rounded (4 decimals; hours 2) and stored as float32-representable values; (iii) each booster is rewritten so TreeSHAP routes samples like LightGBM: thresholds are replaced by their float32 floor (TreeSHAP compares in float32, LightGBM in float64), and splits that saw no NaN in training send missing values where 0 goes (LightGBM's NaN→0 rule). Predictions are unchanged (asserted at fit time).
 
 **Template text** (no LLM), e.g.:
 > *Low value (certified at α = 1%). Predicted Hgb 9.3 g/dL (80% range 8.8–9.8), 1.3 g/dL above the next action threshold (8 g/dL). Main reasons: last 3 values stable (slope −0.05 g/dL/day), last value 9.4, no large change in hematocrit.*
