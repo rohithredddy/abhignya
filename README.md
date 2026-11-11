@@ -63,16 +63,26 @@ certivoi/
 ## Quick start (development on open demo data)
 ```bash
 # Python 3.11 (CONTRIBUTING.md §7). With uv:  uv venv --python 3.11 .venv
-python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scriptsctivate
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt && pip install -e .
 bash scripts/00_download_demo.sh                       # MIMIC-IV demo → data/raw/mimic-iv-demo
-pytest -q                                              # 122 tests, synthetic data only
+pytest -q                                              # synthetic data only
 python scripts/run.py all --config configs/default.yaml   # ~2 min on the demo
 python scripts/make_figures.py                         # results/ → paper/figures, paper/tables
 ```
 
-No data at all? Set `data.mode: synthetic` (and a fresh `data.root`) in an override file:
-the pipeline generates a synthetic MIMIC-schema dataset and runs end to end.
+No data at all? `python scripts/run.py all --override configs/synthetic.yaml` generates a
+synthetic MIMIC-schema dataset and runs end to end.
+
+### Demo app (Phase 8, optional)
+```bash
+pip install -e ".[demo]"                               # adds streamlit
+streamlit run app/streamlit_app.py -- --override configs/synthetic.yaml
+```
+Pick a lab, α, admission and repeat test: the app shows the tier, P(action change), the
+predicted distribution against the action thresholds, and the template explanation. It
+refuses `data.mode: full` (no patient-level MIMIC-IV display) and shows only test-split
+events. Research prototype — not for clinical use.
 
 ### Commands
 | Command | What it does | Output |
@@ -92,17 +102,19 @@ their outputs under `data/interim/<stage>/<hash>/`, keyed by the config keys (an
 version) each stage depends on.
 
 ## Status
-Phases 0–7 and the Phase 9 paper skeleton are implemented and tested (see `PROGRESS.md`).
+Phases 0–8 are implemented and tested; the paper (`paper/main.tex`) has all prose
+written and pulls tables/figures from `results/` automatically, with every result number
+marked `TODO(result)`. Thesis outline: `docs/07_THESIS_OUTLINE.md`. CI (GitHub Actions)
+runs ruff + tests on synthetic data and compiles the paper.
 Results in `results/` currently come from the **open demo (100 patients) and are not
-publishable**; the full MIMIC-IV run is done locally by the data owner. Phase 8
-(Streamlit demo) is not started — it needs the `streamlit` dependency approved.
+publishable**; the full MIMIC-IV run is done locally by the data owner (see `PROGRESS.md`).
 
 ## Full MIMIC-IV runs
 1. Obtain credentialed access on PhysioNet (CITI training + DUA).
 2. Download `hosp/` and `icu/` to `data/raw/mimiciv/`.
-3. Set `data.mode: full` and `data.root` in `configs/default.yaml`.
-4. Smoke-test: `python scripts/run.py all --sample-frac 0.05`.
-5. Full: `python scripts/run.py all`.
+3. `python scripts/run.py verify --override configs/full.yaml` (sets `data.mode: full`).
+4. Smoke-test: `python scripts/run.py all --override configs/full.yaml --sample-frac 0.05`.
+5. Full: `python scripts/run.py all --override configs/full.yaml`, then `python scripts/make_figures.py`.
 6. Share only `results/` with collaborators (see `CONTRIBUTING.md` §4).
 
 ## Experiments

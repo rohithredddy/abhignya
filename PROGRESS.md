@@ -1,11 +1,11 @@
 # PROGRESS.md — living log (updated every session)
 
 ## Current status
-- **Phase:** 0–7 implemented and tested on demo + synthetic data; Phase 9 paper skeleton in place. **Next: full MIMIC-IV run (human, locally)**, then fill the paper from `results/`. Phase 8 (Streamlit demo) not started — needs dependency approval.
+- **Phase:** 0–8 implemented and tested on demo + synthetic data; Phase 9 paper prose written (numbers `TODO(result)`), thesis outline in `docs/07_THESIS_OUTLINE.md`. **Next: full MIMIC-IV run (human, locally)**, then fill numbers from `results/`.
 - **Data access:** [ ] PhysioNet account  [ ] CITI training  [ ] MIMIC-IV approved  [x] Demo usable (open, downloaded to `data/raw/mimic-iv-demo`)
 - **data.mode in config:** demo
 - **Repo:** https://github.com/rohithredddy/abhignya (branch `main`, one commit per phase)
-- **Checks:** `pytest -q` → 122 passed; `ruff check src tests scripts` clean; `python scripts/run.py all` on demo ≈ 2 min.
+- **Checks:** `pytest -q` → 125 passed; `ruff check src tests scripts app` clean; `python scripts/run.py all` on demo ≈ 2 min. CI: `.github/workflows/ci.yml` (ruff + pytest on synthetic data; paper compile → `paper-pdf` artifact).
 
 ## Phase checklist (see docs/05_IMPLEMENTATION_ROADMAP.md)
 - [x] Phase 0 — Scaffold
@@ -16,8 +16,8 @@
 - [x] Phase 5 — Conformal (+ E3, E4)
 - [x] Phase 6 — Explainability (+ E5)
 - [~] Phase 7 — Full runs + ablations (E6): code + demo run done; **full MIMIC-IV run and `results-v1` tag pending (human)**
-- [ ] Phase 8 — Demo (optional): needs `streamlit` (ask before adding)
-- [~] Phase 9 — Paper & thesis: `paper/main.tex` skeleton, `paper/refs.bib`, `scripts/make_figures.py`; text needs full results
+- [x] Phase 8 — Demo: `app/streamlit_app.py` + `certivoi/demo.py` (synthetic/demo data only)
+- [~] Phase 9 — Paper & thesis: prose, pipeline figure, auto-included tables/figures, refs, thesis outline done; result numbers need the full run
 
 ## Phase tasks and acceptance criteria
 ### Phase 0 — Scaffold ✅
@@ -57,7 +57,12 @@
 - [x] `run.py all` reproduces every table/figure (tested end-to-end on synthetic via the CLI).
 - [ ] Human: full MIMIC-IV run → share `results/` only → tag `results-v1`.
 
+### Phase 8 — Demo ✅
+- [x] `src/certivoi/demo.py` (pure back end: `prepare_lab`, `explain_event`, `interval_figure`; refuses `data.mode: full`), `app/streamlit_app.py` (lab, α, admission, repeat test → tier, P(action change), predicted CDF vs thresholds, template explanation, banner "Research prototype — not for clinical use").
+- AC: `streamlit run app/streamlit_app.py -- --override configs/synthetic.yaml` serves the app; exercised headlessly with Streamlit `AppTest` (no exceptions, HGB and CREAT); `tests/test_demo.py` ✅
+
 ### Phase 9 — Paper (partial)
+- [x] Intro, related work, setup, discussion, conclusion written (no result numbers); TikZ pipeline figure (Fig. 1); `\maybetable`/`\maybefig` include generated tables/figures when present. `docs/07_THESIS_OUTLINE.md` (chapters ↔ docs ↔ results files, submission checklist).
 - [x] `paper/main.tex` (IEEEtran; method written; all numbers `TODO(result)`), `paper/refs.bib` (only entries from docs/REFERENCES.md; verify all), `scripts/make_figures.py` (figures + booktabs tables with source-CSV comments; writes `paper/tables/DATA_MODE.txt`).
 
 ## Decision log
@@ -80,6 +85,10 @@
 | 2026-11-11 | E5 example explanations written only when `data_mode != full` | CONTRIBUTING.md §4 / 06 writing rules | — |
 | 2026-11-11 | E6 ICU-intervention ablation reported as "not run" | Needs `icu.inputevents` extraction (optional in 03 §7) | — |
 | 2026-11-11 | LaTeX tables written by a small helper, not `DataFrame.to_latex` | pandas needs jinja2 for that; no new dependency | — |
+| 2026-11-11 | `streamlit>=1.35` added as optional extra `[demo]` (not a core dependency) | Human: "add what are necessary and complete project" (taken as approval for the Phase 8 dependency) | README |
+| 2026-11-11 | Demo refuses `data.mode: full` and shows only test-split events | CONTRIBUTING.md §4 (row-level display) | README |
+| 2026-11-11 | Override files `configs/synthetic.yaml`, `configs/full.yaml` | One-flag switch between modes | README |
+| 2026-11-11 | Template explanations print "missing" for NaN feature values | "= n/a" read poorly in the demo | — |
 
 ## Observations on demo data (NOT publishable; 100 patients)
 - E1: proxies disagree with D strongly — e.g. 75% of action-changing K results were inside the reference range (`results/E1/table2_labels.csv`).
@@ -92,13 +101,12 @@
 ## Open questions
 - Confirm action thresholds with a clinician (docs/02 §2), in particular K = 5.5 → no action.
 - Target conference and deadline?
-- Phase 8 (Streamlit demo, synthetic data only): approve adding `streamlit` as an optional dependency?
 - After the full run: if isotonic still hurts CRC reduction (E6), decide whether to certify on raw EDCP.
 - `results/` currently holds demo aggregates and is committed. Keep committing results (fine for aggregates) or ignore and attach to releases?
 
 ## How to run the full experiment
 1. Get MIMIC-IV access; put `hosp/` and `icu/` under `data/raw/mimiciv/`.
-2. Override file (e.g. `configs/full.yaml`): `data: {mode: full, root: data/raw/mimiciv}`.
+2. Override file `configs/full.yaml` (already in the repo): `data: {mode: full, root: data/raw/mimiciv}`.
 3. `python scripts/run.py verify --override configs/full.yaml` → inspect `results/verify_items/items.csv` if it fails.
 4. Smoke test: `python scripts/run.py all --override configs/full.yaml --sample-frac 0.05`.
 5. Full: `python scripts/run.py all --override configs/full.yaml`, then `python scripts/make_figures.py`.
