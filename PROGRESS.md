@@ -89,6 +89,7 @@
 | 2026-11-11 | Demo refuses `data.mode: full` and shows only test-split events | CONTRIBUTING.md §4 (row-level display) | README |
 | 2026-11-11 | Override files `configs/synthetic.yaml`, `configs/full.yaml` | One-flag switch between modes | README |
 | 2026-11-11 | Template explanations print "missing" for NaN feature values | "= n/a" read poorly in the demo | — |
+| 2026-11-11 | `.gitignore` rule `data/` → `/data/`; `src/certivoi/data/` (cohort, extract, split, verify) committed | The unanchored rule also ignored the code package, so GitHub lacked it until now (found by CI on a fresh clone). Verified: fresh clone passes ruff + 125 tests; CI green | — |
 
 ## Observations on demo data (NOT publishable; 100 patients)
 - E1: proxies disagree with D strongly — e.g. 75% of action-changing K results were inside the reference range (`results/E1/table2_labels.csv`).
