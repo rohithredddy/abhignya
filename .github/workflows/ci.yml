@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "::notice title=paper::$(grep -o 'Output written on main.pdf ([0-9]* pages' paper/main.log || echo 'no log')"
           n=$(grep -c 'Overfull' paper/main.log || true); echo "::notice title=overfull::$n overfull boxes"
-          grep -A1 'Overfull' paper/main.log | head -20 || true
+          grep 'Overfull' paper/main.log | head -5 | while read -r l; do echo "::notice title=overfull-line::$l"; done || true
       - uses: actions/upload-artifact@v4
         with:
           name: paper-pdf
