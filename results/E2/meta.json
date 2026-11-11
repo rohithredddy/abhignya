@@ -1,0 +1,12 @@
+{
+  "exp_id": "E2",
+  "config_hash": "f0041b57e43c",
+  "config_source": "configs\\default.yaml",
+  "git_commit": "d533bf3c0e1bbecab7a5ab70786e72b2d36c17e6",
+  "data_mode": "demo",
+  "seed": 42,
+  "sample_frac": 1.0,
+  "runtime_sec": 44.467,
+  "timestamp_utc": "2026-11-11T12:25:34+00:00",
+  "python": "3.11.15"
+}

@@ -84,6 +84,15 @@ def cmd_features(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_train(cfg: Config, args: argparse.Namespace) -> int:
+    from certivoi.models.train import train_lab
+
+    cmd_features(cfg, argparse.Namespace(force=False))
+    for lab in [args.lab] if getattr(args, "lab", None) else list(cfg.labs):
+        train_lab(cfg, lab, force=args.force)
+    return 0
+
+
 COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "info": ("show resolved config and its hash", cmd_info),
     "extract": ("raw CSV.gz -> filtered Parquet (DuckDB)", cmd_extract),
@@ -91,7 +100,7 @@ COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "split": ("patient-level and temporal splits", cmd_split),
     "labels": ("action labels a0, D, N, S", cmd_labels),
     "features": ("strictly-prior feature matrices", cmd_features),
-    "train": ("fit quantile models and baselines", _not_yet(4, "train")),
+    "train": ("fit quantile models and baselines", cmd_train),
     "exp": ("run one experiment E1-E6", _not_yet(2, "exp")),
     "all": ("run the whole pipeline", _not_yet(7, "all")),
 }

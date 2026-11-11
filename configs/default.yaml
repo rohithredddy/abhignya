@@ -108,6 +108,7 @@ model:
     min_child_samples: [50, 200]
   calibration: isotonic
   use_grid: false            # true => pick small_grid by val pinball loss at tau=0.5 / val logloss
+  creat_target: auto         # auto => CREAT fits delta and absolute, keeps lower val pinball (02 §3)
 
 baselines:
   b1_max_hours: 24           # rule B1: last test < 24 h ago

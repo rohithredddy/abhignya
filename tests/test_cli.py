@@ -28,7 +28,7 @@ def test_info_shows_hash_and_sample_frac() -> None:
     assert "config_hash:" in r.stdout and "sample_frac: 0.05" in r.stdout
 
 
-@pytest.mark.parametrize("args", [("train", "--lab", "HGB"), ("exp", "E3")])
+@pytest.mark.parametrize("args", [("exp", "E3")])
 def test_unimplemented_stages_exit_cleanly(args: tuple[str, ...]) -> None:
     r = _run(*args)
     assert r.returncode == 2
