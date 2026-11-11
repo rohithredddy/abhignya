@@ -28,13 +28,14 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class LabSpec:
-    """One target lab: MIMIC itemid, expected unit, plausibility bounds, stability delta."""
+    """One target lab: itemid, unit, plausibility bounds, stability delta, fallback ref range."""
 
     code: str
     itemid: int
     unit: str
     plausible: tuple[float, float]
     stability_delta: float
+    ref_range: tuple[float, float] | None = None
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -133,12 +134,14 @@ class Config:
         out: dict[str, LabSpec] = {}
         for code, spec in self._raw["labs"].items():
             lo, hi = spec["plausible"]
+            ref = spec.get("ref_range")
             out[code] = LabSpec(
                 code=code,
                 itemid=int(spec["itemid"]),
                 unit=str(spec["unit"]),
                 plausible=(float(lo), float(hi)),
                 stability_delta=float(spec["stability_delta"]),
+                ref_range=(float(ref[0]), float(ref[1])) if ref else None,
             )
         return out
 

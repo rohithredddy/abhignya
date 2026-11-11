@@ -111,6 +111,35 @@ def write_results(
     return out_dir
 
 
+_BASE_KEYS = ["data.mode", "data.root", "data.sample_frac", "project.seed", "labs", "feature_labs"]
+_COHORT_KEYS = [*_BASE_KEYS, "cohort", "data.max_events_per_lab"]
+_LABEL_KEYS = [*_COHORT_KEYS, "actions"]
+_SPLIT_KEYS = [*_COHORT_KEYS, "splits"]
+# Config sections each pipeline stage depends on (its cache key).
+STAGE_KEYS: dict[str, list[str]] = {
+    "extract": _BASE_KEYS,
+    "cohort": _COHORT_KEYS,
+    "split": _SPLIT_KEYS,
+    "labels": _LABEL_KEYS,
+    "features": _LABEL_KEYS,
+    "models": [*_LABEL_KEYS, "splits", "model", "baselines", "triage"],
+}
+
+
+def stage_hash(cfg: Config, stage: str) -> str:
+    """Hash of only the config keys ``stage`` depends on (see ``STAGE_KEYS``)."""
+    from certivoi.config import hash_dict
+
+    return hash_dict({k: cfg.get(k, None) for k in STAGE_KEYS[stage]})
+
+
+def stage_dir(cfg: Config, stage: str) -> Path:
+    """Interim directory ``<interim_dir>/<stage>/<stage_hash>`` (created)."""
+    p = cfg.interim_dir / stage / stage_hash(cfg, stage)
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
 def interim_path(cfg: Config, stage: str, name: str) -> Path:
     """Cache location ``<interim_dir>/<config_hash>/<stage>/<name>`` (parents created)."""
     p = cfg.interim_dir / cfg.hash / stage / name

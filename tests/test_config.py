@@ -12,7 +12,7 @@ from synthetic import DEFAULT_CONFIG
 def test_default_config_loads(cfg: Config) -> None:
     assert cfg.data_mode in ("demo", "full", "synthetic")
     assert set(cfg.labs) == {"HGB", "K", "CREAT", "PLT"}
-    assert cfg.labs["K"] == LabSpec("K", 50971, "mEq/L", (1.0, 10.0), 0.3)
+    assert cfg.labs["K"] == LabSpec("K", 50971, "mEq/L", (1.0, 10.0), 0.3, (3.3, 5.1))
     assert cfg.threads >= 1
     assert all(0 < a < 1 for a in cfg.alphas)
     assert len(cfg.hash) == 12

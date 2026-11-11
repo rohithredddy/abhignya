@@ -26,10 +26,11 @@ cohort:
   min_gap_minutes: 1         # strictly-prior rule: data must be < t - min_gap
 
 labs:
-  HGB:   {itemid: 51222, unit: "g/dL",  plausible: [2.0, 25.0],  stability_delta: 0.5}
-  K:     {itemid: 50971, unit: "mEq/L", plausible: [1.0, 10.0],  stability_delta: 0.3}
-  CREAT: {itemid: 50912, unit: "mg/dL", plausible: [0.1, 25.0],  stability_delta: 0.2}
-  PLT:   {itemid: 51265, unit: "K/uL",  plausible: [1.0, 2000.0], stability_delta: 20.0}
+  # ref_range: fallback reference interval for label N when labevents ref_range_* is null
+  HGB:   {itemid: 51222, unit: "g/dL",  plausible: [2.0, 25.0],  stability_delta: 0.5,  ref_range: [12.0, 17.5]}
+  K:     {itemid: 50971, unit: "mEq/L", plausible: [1.0, 10.0],  stability_delta: 0.3,  ref_range: [3.3, 5.1]}
+  CREAT: {itemid: 50912, unit: "mg/dL", plausible: [0.1, 25.0],  stability_delta: 0.2,  ref_range: [0.5, 1.2]}
+  PLT:   {itemid: 51265, unit: "K/uL",  plausible: [1.0, 2000.0], stability_delta: 20.0, ref_range: [150.0, 440.0]}
 
 feature_labs:              # cross-lab panel (verify with scripts/01_verify_items.py)
   HCT: 51221
@@ -46,7 +47,9 @@ feature_labs:              # cross-lab panel (verify with scripts/01_verify_item
 
 actions:                   # category boundaries (left-closed intervals); confirm with clinician
   HGB:   {boundaries: [7.0, 8.0],  names: [transfuse_consider, borderline, no_action]}
-  K:     {boundaries: [3.5, 5.5],  names: [replete, no_action, treat_hyperK]}   # >5.5 handled as upper category
+  K:     {boundaries: [3.5, 5.5],  names: [replete, no_action, treat_hyperK], at_boundary_upper: [true, false]}
+  # at_boundary_upper[k]: does a value exactly equal to boundary k belong to the upper category?
+  # Default true (left-closed). K: 5.5 is "no action" (02_METHODOLOGY §2: ">5.5 treat").
   PLT:   {boundaries: [10.0, 50.0], names: [prophylactic_transfuse, procedure_dependent, no_action]}
   CREAT:
     rule: kdigo
@@ -56,7 +59,30 @@ actions:                   # category boundaries (left-closed intervals); confir
     names: [no_aki, aki_1, aki_2, aki_3]
   sensitivity_variants:    # used in E4 threshold sensitivity
     HGB: {boundaries: [7.0]}
-    K:   {boundaries: [3.0, 6.0]}
+    K:   {boundaries: [3.0, 6.0], at_boundary_upper: [true, false]}
+
+verify:                    # expected d_labitems labels (case-insensitive substring) + fluid
+  fluid: Blood
+  expected_labels:
+    51222: Hemoglobin
+    50971: Potassium
+    50912: Creatinine
+    51265: Platelet Count
+    51221: Hematocrit
+    51301: White Blood Cells
+    50983: Sodium
+    50902: Chloride
+    50882: Bicarbonate
+    51006: Urea Nitrogen
+    50931: Glucose
+    50893: Calcium
+    50960: Magnesium
+    50970: Phosphate
+    51237: INR
+
+synthetic:                 # data.mode: synthetic -> generated into data.root if missing
+  n_patients: 300
+  seed: 0
 
 splits:
   fractions: {train: 0.60, val: 0.10, calib: 0.15, test: 0.15}
@@ -81,6 +107,11 @@ model:
     num_leaves: [15, 31, 63]
     min_child_samples: [50, 200]
   calibration: isotonic
+  use_grid: false            # true => pick small_grid by val pinball loss at tau=0.5 / val logloss
+
+baselines:
+  b1_max_hours: 24           # rule B1: last test < 24 h ago
+  natural_threshold: 0.5     # E3 mode (a): classifier probability cut-off
 
 conformal:
   alphas: [0.005, 0.01, 0.02, 0.05]
@@ -103,3 +134,6 @@ eval:
   bootstrap_reps: 1000
   ece_bins: 15
   min_cell_count: 10         # privacy: suppress aggregates with n < 10
+  resample_calib_share: 0.5  # share of held-out (calib+test) patients used as calib in resamples
+  temporal_recal_frac: 0.2   # E4: share of later-period patients used to re-calibrate CRC
+  main_alpha: 0.01           # alpha used in single-number summaries (E6, Fig. 8)

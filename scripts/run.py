@@ -43,11 +43,36 @@ def cmd_info(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_extract(cfg: Config, args: argparse.Namespace) -> int:
+    from certivoi.data.extract import ensure_synthetic_raw, extract
+
+    if cfg.data_mode == "synthetic":
+        ensure_synthetic_raw(cfg)
+    extract(cfg, force=args.force)
+    return 0
+
+
+def cmd_cohort(cfg: Config, args: argparse.Namespace) -> int:
+    from certivoi.data.cohort import build_cohort
+
+    cmd_extract(cfg, argparse.Namespace(force=False))
+    build_cohort(cfg, force=args.force)
+    return 0
+
+
+def cmd_split(cfg: Config, args: argparse.Namespace) -> int:
+    from certivoi.data.split import make_splits
+
+    cmd_cohort(cfg, argparse.Namespace(force=False))
+    make_splits(cfg, force=args.force)
+    return 0
+
+
 COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "info": ("show resolved config and its hash", cmd_info),
-    "extract": ("raw CSV.gz -> filtered Parquet (DuckDB)", _not_yet(1, "extract")),
-    "cohort": ("cohort steps + flow table", _not_yet(1, "cohort")),
-    "split": ("patient-level and temporal splits", _not_yet(1, "split")),
+    "extract": ("raw CSV.gz -> filtered Parquet (DuckDB)", cmd_extract),
+    "cohort": ("cohort steps + flow table", cmd_cohort),
+    "split": ("patient-level and temporal splits", cmd_split),
     "labels": ("action labels a0, D, N, S", _not_yet(2, "labels")),
     "features": ("strictly-prior feature matrices", _not_yet(3, "features")),
     "train": ("fit quantile models and baselines", _not_yet(4, "train")),

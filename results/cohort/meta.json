@@ -1,0 +1,12 @@
+{
+  "exp_id": "cohort",
+  "config_hash": "cf76989e37ec",
+  "config_source": "configs\\default.yaml",
+  "git_commit": "0111aa1ba89f877e56723b7ba06b6f19d37fa16d",
+  "data_mode": "demo",
+  "seed": 42,
+  "sample_frac": 1.0,
+  "runtime_sec": 0.0,
+  "timestamp_utc": "2026-11-11T12:13:57+00:00",
+  "python": "3.11.15"
+}
