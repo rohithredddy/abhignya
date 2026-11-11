@@ -1,0 +1,105 @@
+# CertiVOI default configuration. All thresholds/hyperparameters live here, not in code.
+# Implements docs/02_METHODOLOGY.md and docs/03_DATA_AND_COHORT.md.
+
+project:
+  name: certivoi
+  seed: 42
+  robustness_seeds: [42, 7, 2026]
+
+data:
+  mode: demo                 # demo | full | synthetic  (full => privacy rules in CONTRIBUTING.md §4)
+  root: data/raw/mimic-iv-demo
+  interim_dir: data/interim
+  processed_dir: data/processed
+  results_dir: results
+  sample_frac: 1.0           # override with --sample-frac for smoke tests
+  max_events_per_lab: 400000
+
+compute:
+  threads: 7                 # physical cores - 1
+  max_ram_gb: 12
+
+cohort:
+  min_age: 18
+  min_admission_hours: 24
+  repeat_lookback_hours: 72
+  min_gap_minutes: 1         # strictly-prior rule: data must be < t - min_gap
+
+labs:
+  HGB:   {itemid: 51222, unit: "g/dL",  plausible: [2.0, 25.0],  stability_delta: 0.5}
+  K:     {itemid: 50971, unit: "mEq/L", plausible: [1.0, 10.0],  stability_delta: 0.3}
+  CREAT: {itemid: 50912, unit: "mg/dL", plausible: [0.1, 25.0],  stability_delta: 0.2}
+  PLT:   {itemid: 51265, unit: "K/uL",  plausible: [1.0, 2000.0], stability_delta: 20.0}
+
+feature_labs:              # cross-lab panel (verify with scripts/01_verify_items.py)
+  HCT: 51221
+  WBC: 51301
+  NA: 50983
+  CL: 50902
+  HCO3: 50882
+  BUN: 51006
+  GLU: 50931
+  CA: 50893
+  MG: 50960
+  PHOS: 50970
+  INR: 51237
+
+actions:                   # category boundaries (left-closed intervals); confirm with clinician
+  HGB:   {boundaries: [7.0, 8.0],  names: [transfuse_consider, borderline, no_action]}
+  K:     {boundaries: [3.5, 5.5],  names: [replete, no_action, treat_hyperK]}   # >5.5 handled as upper category
+  PLT:   {boundaries: [10.0, 50.0], names: [prophylactic_transfuse, procedure_dependent, no_action]}
+  CREAT:
+    rule: kdigo
+    abs_rise_48h: 0.3
+    ratio_7d: [1.5, 2.0, 3.0]
+    stage3_abs: 4.0
+    names: [no_aki, aki_1, aki_2, aki_3]
+  sensitivity_variants:    # used in E4 threshold sensitivity
+    HGB: {boundaries: [7.0]}
+    K:   {boundaries: [3.0, 6.0]}
+
+splits:
+  fractions: {train: 0.60, val: 0.10, calib: 0.15, test: 0.15}
+  temporal:
+    train_groups: ["2008 - 2010", "2011 - 2013", "2014 - 2016"]
+    test_groups:  ["2017 - 2019"]
+  crc_resamples: 100
+
+model:
+  quantiles: [0.02, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.98]
+  target: delta              # delta | absolute (ablation E6)
+  lightgbm:
+    n_estimators: 2000
+    learning_rate: 0.03
+    num_leaves: 31
+    min_child_samples: 100
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+    early_stopping_rounds: 100
+  small_grid:                # only grid allowed (CONTRIBUTING.md §3)
+    num_leaves: [15, 31, 63]
+    min_child_samples: [50, 200]
+  calibration: isotonic
+
+conformal:
+  alphas: [0.005, 0.01, 0.02, 0.05]
+  ltt:
+    betas: [0.02, 0.05]
+    delta: 0.10
+  mondrian_groups: [sex, age_band, race_group, icu]
+  age_bands: [18, 45, 65, 80, 200]
+
+triage:
+  high_value_min_precision: 0.5
+
+explain:
+  shap_background_rows: 200
+  shap_explain_rows: 5000
+  faithfulness_k: [1, 3, 5]
+  interval: [0.10, 0.90]
+
+eval:
+  bootstrap_reps: 1000
+  ece_bins: 15
+  min_cell_count: 10         # privacy: suppress aggregates with n < 10

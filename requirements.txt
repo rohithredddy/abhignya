@@ -1,0 +1,17 @@
+# CPU-only stack. Ask before adding dependencies (CONTRIBUTING.md §7).
+duckdb>=1.0
+polars>=1.0
+pandas>=2.1
+pyarrow>=15.0
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4
+lightgbm>=4.3
+shap>=0.45
+matplotlib>=3.8
+pyyaml>=6.0
+tqdm>=4.66
+pytest>=8.0
+ruff>=0.5
+# optional demo (Phase 8)
+# streamlit>=1.35
