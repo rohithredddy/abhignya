@@ -58,7 +58,7 @@ def tab_perf(m: Path, out: Path) -> None:
         rows.append(f"{NAME[lab]} & " + " & ".join(cells) + r" \\")
     write(out / "tab_perf.tex", [
         f"% source: {m}/E2/table3_performance.csv, {m}/E3/table4_certified.csv",
-        r"\begin{table}[t]\centering\footnotesize",
+        r"\begin{table}[t]\centering\scriptsize",
         r"\caption{Discrimination of $D$ on the test patients and the certified low-value tier "
         r"(mean over 100 calibration/test re-splits). Tier cells: tests flagged / missed "
         r"action changes, both in \% of all repeat tests.}",
