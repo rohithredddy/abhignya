@@ -157,3 +157,10 @@ class Timer:
 
     def __exit__(self, *exc: object) -> None:
         self.elapsed = time.perf_counter() - self._t0
+
+
+def privacy_suppress(cfg: Config, df: pd.DataFrame, count_cols: list[str]) -> pd.DataFrame:
+    """Apply small-cell suppression when ``data.mode`` is ``full`` (no-op otherwise)."""
+    if not cfg.is_full:
+        return df
+    return suppress_small_counts(df, count_cols, int(cfg.get("eval.min_cell_count")))

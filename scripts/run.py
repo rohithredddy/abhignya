@@ -68,12 +68,20 @@ def cmd_split(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_labels(cfg: Config, args: argparse.Namespace) -> int:
+    from certivoi.labels.build import build_labels
+
+    cmd_split(cfg, argparse.Namespace(force=False))
+    build_labels(cfg, force=args.force)
+    return 0
+
+
 COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "info": ("show resolved config and its hash", cmd_info),
     "extract": ("raw CSV.gz -> filtered Parquet (DuckDB)", cmd_extract),
     "cohort": ("cohort steps + flow table", cmd_cohort),
     "split": ("patient-level and temporal splits", cmd_split),
-    "labels": ("action labels a0, D, N, S", _not_yet(2, "labels")),
+    "labels": ("action labels a0, D, N, S", cmd_labels),
     "features": ("strictly-prior feature matrices", _not_yet(3, "features")),
     "train": ("fit quantile models and baselines", _not_yet(4, "train")),
     "exp": ("run one experiment E1-E6", _not_yet(2, "exp")),
