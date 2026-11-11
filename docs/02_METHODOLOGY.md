@@ -82,6 +82,15 @@ Run 5.1 separately within groups $G$ (sex; age band <45/45–65/65–80/>80; rac
 - **High-value:** $s \ge \tau_H$, with $\tau_H$ chosen on validation so that precision of $D=1$ in this tier ≥ 0.5 (config).
 - **Potentially useful:** otherwise.
 
+### 5.5 Patient-clustered CRC (extension, E7a)
+Repeat tests of one patient are dependent; patients (the split unit) are exchangeable, events need not be. Treat each calibration patient $i$ (with $m_i$ events) as one unit with loss $L_i(\lambda)=\frac{1}{m_i}\sum_{e\in i}D_e\mathbb{1}[s_e\le\lambda]\in[0,1]$, monotone in $\lambda$, and apply CRC over the $n$ patients: $\hat\lambda=\max\{\lambda:\sum_i L_i(\lambda)+1\le\alpha(n+1)\}$. Guarantee: $\mathbb{E}[L_{\text{new}}(\hat\lambda)]\le\alpha$ — the expected share of a new patient's repeat tests that are flagged action changes is at most $\alpha$. Needs $n\ge 1/\alpha-1$ calibration patients to flag anything. Code: `conformal/clustered.py`.
+
+### 5.6 Panel (specimen-level) certification (extension, E7b)
+Labs drawn in one tube are skipped together: CBC = {HGB, PLT}, BMP = {K, CREAT} (config `extensions.panels`). For a draw with labs $j\in P$ (all repeat events, matched on admission and charttime): $D_P=\max_j D_j$, score $s_P=\max_j s_j$ or $1-\prod_j(1-s_j)$ (noisy-or), loss $D_P\mathbb{1}[s_P\le\lambda]$; CRC on draws certifies the draw-level miss rate at $\alpha$. Combining per-lab certificates ("skip if every lab is flagged at $\alpha$") only bounds it by $\sum_j\alpha=|P|\alpha$ (union bound); the valid per-lab alternative is Bonferroni ($\alpha/|P|$ each). CRC validity holds for any panel score. Code: `conformal/panel.py`.
+
+### 5.7 Online risk control with audited feedback (extension, E7c)
+In deployment, the result of a skipped test is never observed. Stream $t=1..T$; rank-scale score $u_t=\hat F_{\text{cal}}(s_t)$; flag $f_t=\mathbb{1}[u_t\le\lambda_t]$; each flagged test is still performed with probability $p$ (audit $A_t$, independent); estimated loss $\hat\ell_t=D_tf_tA_t/p$ (needs $D_t$ only when the test is done); update $\lambda_{t+1}=\min(\lambda_t+\eta(\alpha-\hat\ell_t),1)$, warm start $\lambda_1=\hat F_{\text{cal}}(\hat\lambda_{\text{CRC}})$. For any sequence (no exchangeability), $\frac1T\sum_t\hat\ell_t\le\alpha+\frac{\lambda_1+\eta(1/p-\alpha)}{\eta T}$; since $\mathbb{E}[\hat\ell_t\mid\text{past},D_t,s_t]=D_tf_t$, the realised miss rate differs from it by a martingale average with increments $\le1/p$ ($O(1/(p\sqrt T))$). Effective reduction $=\overline{f_t(1-A_t)}$. $p=1$ is a full-label reference. Config `extensions.online`. Code: `conformal/online.py`.
+
 ## 6. VOI-native explanation
 
 Per event, compute:

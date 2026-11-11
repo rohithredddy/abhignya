@@ -56,9 +56,13 @@ def test_all_end_to_end_synthetic(tmp_path: Path) -> None:
     r = _run("all", "--config", "configs/default.yaml", "--override", str(ov), timeout=900)
     assert r.returncode == 0, r.stderr[-3000:]
     res = tmp_path / "results"
-    for exp in ("cohort", "verify_items", "features", "E1", "E2", "E3", "E4", "E5", "E6"):
+    for exp in ("cohort", "verify_items", "features", "E1", "E2", "E3", "E4", "E5", "E6",
+                "E7"):
         meta = json.loads((res / exp / "meta.json").read_text(encoding="utf-8"))
         assert meta["data_mode"] == "synthetic"
+    t10 = pd.read_csv(res / "E7" / "table10_online.csv")
+    assert {"static", "online_p0.2"} <= set(t10["method"].dropna())
+    assert {"CBC", "BMP"} <= set(pd.read_csv(res / "E7" / "table9_panel.csv")["panel"])
     t7 = pd.read_csv(res / "E6" / "table7_ablations.csv")
     assert {"main", "no_isotonic", "target_absolute", "no_trend", "no_panel"} <= set(
         t7["variant"])

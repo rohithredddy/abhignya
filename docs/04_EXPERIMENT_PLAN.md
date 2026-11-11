@@ -41,6 +41,12 @@ For α ∈ {0.005, 0.01, 0.02, 0.05}:
 - Calibration: with vs without isotonic before CRC (validity should hold either way; reduction may change).
 - **Output:** Table 7.
 
+## E7 — Certification extensions (RQ3+, novelty)
+- (a) **Patient-clustered CRC** (02 §5.5) vs event-level CRC: event-level and patient-level realised risk, reduction, over `splits.crc_resamples` patient re-splits. Output: Table 8.
+- (b) **Panel certification** (02 §5.6) for CBC (HGB+PLT) and BMP (K+CREAT): naive per-lab α, Bonferroni per-lab α/k, panel CRC (max, noisy-or); draw-level miss rate and draws avoided. Output: Table 9.
+- (c) **Audited online risk control** (02 §5.7): test stream ordered as shuffled (exchangeable), by era (`anchor_year_group`), ward→ICU (covariate shift), and the temporal model (train ≤2016, stream 2017–2019) when available; static CRC vs online with audit rates $p\in\{1, 0.2, 0.1\}$; miss rate, worst rolling-window miss rate, flag rate, effective reduction, finite-T bound; `extensions.online.reps` repeats. Output: Table 10, Fig. 9.
+- Report honestly: clustered CRC is more conservative (fewer units); online control trades some reduction (audits) for validity under shift.
+
 ## Reporting checklist
 - Cohort flow (Table 1), with counts per lab.
 - All metrics with CIs; all randomness seeded and logged.

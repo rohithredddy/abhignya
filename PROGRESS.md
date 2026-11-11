@@ -5,7 +5,7 @@
 - **Data access:** [ ] PhysioNet account  [ ] CITI training  [ ] MIMIC-IV approved  [x] Demo usable (open, downloaded to `data/raw/mimic-iv-demo`)
 - **data.mode in config:** demo
 - **Repo:** https://github.com/rohithredddy/abhignya (branch `main`, one commit per phase)
-- **Checks:** `pytest -q` → 125 passed; `ruff check src tests scripts app` clean; `python scripts/run.py all` on demo ≈ 2 min. CI: `.github/workflows/ci.yml` (ruff + pytest on synthetic data; paper compile → `paper-pdf` artifact).
+- **Checks:** `pytest -q` → 133 passed; `ruff check src tests scripts app` clean; `python scripts/run.py all` on demo ≈ 2 min. CI: `.github/workflows/ci.yml` (ruff + pytest on synthetic data; paper compile → `paper-pdf` artifact).
 
 ## Phase checklist (see docs/05_IMPLEMENTATION_ROADMAP.md)
 - [x] Phase 0 — Scaffold
@@ -16,6 +16,7 @@
 - [x] Phase 5 — Conformal (+ E3, E4)
 - [x] Phase 6 — Explainability (+ E5)
 - [~] Phase 7 — Full runs + ablations (E6): code + demo run done; **full MIMIC-IV run and `results-v1` tag pending (human)**
+- [x] E7 — Certification extensions (novelty): patient-clustered CRC, panel certification, audited online risk control (02 §5.5–5.7, 04 E7)
 - [x] Phase 8 — Demo: `app/streamlit_app.py` + `certivoi/demo.py` (synthetic/demo data only)
 - [~] Phase 9 — Paper & thesis: prose, pipeline figure, auto-included tables/figures, refs, thesis outline done; result numbers need the full run
 
@@ -89,17 +90,21 @@
 | 2026-11-11 | Demo refuses `data.mode: full` and shows only test-split events | CONTRIBUTING.md §4 (row-level display) | README |
 | 2026-11-11 | Override files `configs/synthetic.yaml`, `configs/full.yaml` | One-flag switch between modes | README |
 | 2026-11-11 | Template explanations print "missing" for NaN feature values | "= n/a" read poorly in the demo | — |
+| 2026-11-11 | Added E7 (in-scope conformal extensions, no new deps): patient-clustered CRC (§5.5), panel/tube-level CRC for CBC & BMP (§5.6), online risk control with random audits + IPW (§5.7) | Human asked for stronger CPU-only novelty. Literature check: no conformal method for lab-test reduction; no joint panel/specimen-level model (closest: single-test or CBC-only, e.g. SmartAlert); hierarchical conformal exists for prediction sets (Dunn et al.) but not CRC for repeat tests; online risk control under shift exists (Feldman et al. 2022) and partial-feedback online conformal exists for prediction sets (Ge & Bastani 2024; ICLR 2026 semi-bandit), but not audited deferral. Claims phrased "to our knowledge"; refs to add to REFERENCES.md after verification | 01 §7, 02 §5.5–5.7, 04 E7 |
 | 2026-11-11 | `.gitignore` rule `data/` → `/data/`; `src/certivoi/data/` (cohort, extract, split, verify) committed | The unanchored rule also ignored the code package, so GitHub lacked it until now (found by CI on a fresh clone). Verified: fresh clone passes ruff + 125 tests; CI green | — |
 
 ## Observations on demo data (NOT publishable; 100 patients)
 - E1: proxies disagree with D strongly — e.g. 75% of action-changing K results were inside the reference range (`results/E1/table2_labels.csv`).
 - E3: mean realised risk over 100 resamples ≤ α for every lab and α. Proxy baselines at natural thresholds miss more action-changing results (e.g. stability classifier B3, HGB: risk 0.119).
 - **Isotonic calibration on the tiny demo val split (10 patients) collapses scores into ties**: HGB AUROC 0.84 (raw EDCP) → 0.71 (calibrated), and CRC then certifies nothing for HGB/K at α ≤ 2%. E6 `no_isotonic` certifies far more (HGB: 77% at α = 5%). Expected to disappear with full-MIMIC val sizes — check E6 on the full run; if it persists, consider CRC on raw EDCP (validity holds either way). **Do not change the default without the user.**
+- E7 (demo): BMP panel CRC avoids ≈44% of draws at α=5% vs ≈9% for valid per-lab Bonferroni (both within α); patient-clustered CRC flags nothing on demo because it needs ≥ 1/α − 1 calibration patients (demo has ≈15) — expected, fine on full data; online streams (≈300 tests) too short for the finite-T bound to bite (bound > 1), but for CREAT online control lowers the static miss rate 0.11 → ≈0.06.
 - PLT has ≈1 action-changing result in the demo test split → its metrics are meaningless on demo.
 - E4 temporal shift skipped on demo: demo has no 2017–2019 patients.
 - E5: Spearman(ρ, EDCP) ≈ −0.93 (HGB, K, CREAT); top-k SHAP deletions change EDCP more than random-k (Wilcoxon p < 0.01, all labs).
 
 ## Open questions
+- E7 online: choose audit rate p for the headline (default reports 1.0, 0.2, 0.1) and step η (0.002, rank scale). Is a 10–20% audit of flagged tests clinically acceptable?
+- Verify and add to docs/REFERENCES.md: Feldman et al. 2022 (arXiv 2205.09095, rolling risk control); Gibbs & Candès 2021 (ACI); Dunn, Wasserman & Ramdas (JASA 2023, hierarchical conformal); Ge & Bastani 2024 (arXiv 2405.13268); SmartAlert (Stanford 2025, CBC stability alerts).
 - Confirm action thresholds with a clinician (docs/02 §2), in particular K = 5.5 → no action.
 - Target conference and deadline?
 - After the full run: if isotonic still hurts CRC reduction (E6), decide whether to certify on raw EDCP.

@@ -17,7 +17,7 @@ from certivoi.config import TARGET_LABS, Config, load_config
 from certivoi.utils.logging import get_logger
 from certivoi.utils.seed import set_all
 
-EXPERIMENTS = ("E1", "E2", "E3", "E4", "E5", "E6")
+EXPERIMENTS = ("E1", "E2", "E3", "E4", "E5", "E6", "E7")
 log = get_logger("certivoi.run")
 
 
@@ -95,9 +95,9 @@ def cmd_train(cfg: Config, args: argparse.Namespace) -> int:
 
 
 def run_experiment(cfg: Config, exp_id: str) -> None:
-    from certivoi.experiments import e1, e2, e3, e4, e5, e6
+    from certivoi.experiments import e1, e2, e3, e4, e5, e6, e7
 
-    modules = {"E1": e1, "E2": e2, "E3": e3, "E4": e4, "E5": e5, "E6": e6}
+    modules = {"E1": e1, "E2": e2, "E3": e3, "E4": e4, "E5": e5, "E6": e6, "E7": e7}
     log.info("running %s", exp_id)
     modules[exp_id].run(cfg)
 
@@ -108,7 +108,7 @@ def cmd_exp(cfg: Config, args: argparse.Namespace) -> int:
 
 
 def cmd_all(cfg: Config, args: argparse.Namespace) -> int:
-    """Full pipeline: verify items, build every stage, run E1–E6."""
+    """Full pipeline: verify items, build every stage, run E1–E7."""
     if cmd_verify(cfg, args) != 0:
         return 1
     for step in (cmd_cohort, cmd_split, cmd_labels, cmd_features, cmd_train):
@@ -128,8 +128,8 @@ COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "labels": ("action labels a0, D, N, S", cmd_labels),
     "features": ("strictly-prior feature matrices", cmd_features),
     "train": ("fit quantile models and baselines", cmd_train),
-    "exp": ("run one experiment E1-E6", cmd_exp),
-    "all": ("run the whole pipeline (verify, stages, E1-E6)", cmd_all),
+    "exp": ("run one experiment E1-E7", cmd_exp),
+    "all": ("run the whole pipeline (verify, stages, E1-E7)", cmd_all),
 }
 
 

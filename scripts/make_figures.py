@@ -26,6 +26,7 @@ FIGURES = {
     "E4/fig6_temporal_shift.png": "fig6_temporal_shift.png",
     "E5/fig7_global_importance.png": "fig7_global_importance.png",
     "E5/fig8_examples.png": "fig8_examples.png",
+    "E7/fig9_online_shift.png": "fig9_online_shift.png",
 }
 
 
@@ -108,6 +109,24 @@ def build_tables(res: Path) -> dict[str, tuple[pd.DataFrame, str, str, str]]:
                                                          "resample_reduction_mean", "note"]]
         out["table7_ablations"] = (t.astype(object).fillna(""), "Ablations at $\\alpha=0.01$.",
                                    "tab:abl", str(p))
+    for name, cols, cap, label in (
+        ("table8_clustered", ["lab", "alpha", "method", "event_risk_mean", "patient_risk_mean",
+                              "reduction_mean"],
+         "Event-level vs patient-clustered CRC.", "tab:clustered"),
+        ("table9_panel", ["panel", "alpha", "method", "risk_mean", "draw_reduction_mean"],
+         "Panel (specimen-level) certification: draw-level miss rate and draws avoided.",
+         "tab:panel"),
+        ("table10_online", ["lab", "order", "alpha", "method", "miss_rate_mean",
+                            "worst_window_mean", "reduction_mean"],
+         "Static vs audited online risk control on ordered streams.", "tab:online"),
+    ):
+        p = res / "E7" / f"{name}.csv"
+        if p.exists():
+            t = pd.read_csv(p)
+            if "status" in t:
+                t = t[t["status"] == "ok"]
+            keep = [c for c in cols if c in t.columns]
+            out[name] = (t[keep], cap, label, str(p))
     return out
 
 

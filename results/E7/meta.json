@@ -1,0 +1,12 @@
+{
+  "exp_id": "E7",
+  "config_hash": "1430c83d320c",
+  "config_source": "configs\\default.yaml",
+  "git_commit": "f9e0b21a50941d8996c8300815a2b4a8e3dc5604",
+  "data_mode": "demo",
+  "seed": 42,
+  "sample_frac": 1.0,
+  "runtime_sec": 16.657,
+  "timestamp_utc": "2026-11-11T15:24:15+00:00",
+  "python": "3.11.15"
+}

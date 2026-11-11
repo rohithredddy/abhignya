@@ -67,6 +67,7 @@ Existing data-driven methods label a repeat test "unnecessary" when its result i
 
 - **C1.** A decision-anchored formulation of repeat-test information value that operationalizes DECIDE-Lab's action-change principle on EHR data, with a simple proposition connecting EDCP to single-step VOI.
 - **C2.** A model-agnostic, distribution-free **safety certificate** for low-value flags (CRC + LTT + Mondrian), evaluated for validity across labs, subgroups and temporal shift.
+- **C2+.** Three certification extensions that, to our knowledge, have not been studied for lab deferral (literature check 2026-11-11, see PROGRESS): (i) **patient-clustered CRC** (guarantee per patient, matching the patient-level split); (ii) **panel (tube-level) certification** — HGB+PLT (CBC) and K+CREAT (BMP) are drawn together, so the decision unit is the draw; per-lab certificates do not compose (union bound gives kα), panel CRC gives α; (iii) **online risk control with audited feedback** — skipped tests reveal no outcome, so a random audit of p of flagged tests feeds an inverse-propensity ACI-style update with a deterministic long-run bound under arbitrary shift. All CPU-trivial (02 §5.5–5.7, E7).
 - **C3.** A **VOI-native explanation** (margin vs. uncertainty, each SHAP-attributed) with quantitative faithfulness evaluation.
 - **C4.** A reproducible, CPU-only empirical study on MIMIC-IV over four common repeat labs, including the first (to our knowledge) quantification of proxy-vs-decision label disagreement.
 

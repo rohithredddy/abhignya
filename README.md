@@ -94,8 +94,8 @@ events. Research prototype — not for clinical use.
 | `run.py labels` | a0, D, N, S (+ KDIGO for creatinine) | `data/interim/labels/` |
 | `run.py features` | strictly-prior features + manifest | `results/features/` |
 | `run.py train [--lab L]` | quantile LightGBM, EDCP, isotonic, B1–B5 | `data/interim/models/` |
-| `run.py exp E1..E6` | one experiment | `results/E*/` |
-| `run.py all` | everything above, then E1–E6 | `results/` |
+| `run.py exp E1..E7` | one experiment | `results/E*/` |
+| `run.py all` | everything above, then E1–E7 | `results/` |
 
 Common flags: `--override extra.yaml`, `--sample-frac 0.05`, `--force`. Stages cache
 their outputs under `data/interim/<stage>/<hash>/`, keyed by the config keys (and code
@@ -126,6 +126,7 @@ publishable**; the full MIMIC-IV run is done locally by the data owner (see `PRO
 | E4 | Subgroup & temporal robustness | Table 5, Fig. 6 |
 | E5 | Explanation faithfulness | Table 6, Figs. 7–8 |
 | E6 | Ablations | Table 7 |
+| E7 | Extensions: patient-clustered CRC, panel (tube-level) certification, audited online risk control under shift | Tables 8–10, Fig. 9 |
 
 ## Hardware
 Tested target: 8-core CPU, 16 GB RAM (8 GB works with `--sample-frac`). No GPU.

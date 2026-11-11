@@ -123,6 +123,18 @@ conformal:
   mondrian_groups: [sex, age_band, race_group, icu]
   age_bands: [18, 45, 65, 80, 200]
 
+extensions:                # E7 certification extensions (02 §5.5–5.7)
+  panels:                    # labs drawn in the same tube (one draw = one decision)
+    CBC: [HGB, PLT]
+    BMP: [K, CREAT]
+  panel_scores: [max, noisy_or]
+  online:
+    alphas: [0.01, 0.05]
+    eta: 0.002               # step size on the rank scale (fraction of tests flagged)
+    audit_rates: [1.0, 0.2, 0.1]   # p: share of flagged tests still performed (1.0 = full-label reference)
+    reps: 5
+    window_frac: 0.2         # rolling window for worst-window miss rate (>= 100 tests)
+
 triage:
   high_value_min_precision: 0.5
 
