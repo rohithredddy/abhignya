@@ -93,6 +93,20 @@
 | 2026-11-11 | Added E7 (in-scope conformal extensions, no new deps): patient-clustered CRC (§5.5), panel/tube-level CRC for CBC & BMP (§5.6), online risk control with random audits + IPW (§5.7) | Human asked for stronger CPU-only novelty. Literature check: no conformal method for lab-test reduction; no joint panel/specimen-level model (closest: single-test or CBC-only, e.g. SmartAlert); hierarchical conformal exists for prediction sets (Dunn et al.) but not CRC for repeat tests; online risk control under shift exists (Feldman et al. 2022) and partial-feedback online conformal exists for prediction sets (Ge & Bastani 2024; ICLR 2026 semi-bandit), but not audited deferral. Claims phrased "to our knowledge"; refs to add to REFERENCES.md after verification | 01 §7, 02 §5.5–5.7, 04 E7 |
 | 2026-11-11 | `.gitignore` rule `data/` → `/data/`; `src/certivoi/data/` (cohort, extract, split, verify) committed | The unanchored rule also ignored the code package, so GitHub lacked it until now (found by CI on a fresh clone). Verified: fresh clone passes ruff + 125 tests; CI green | — |
 
+## Results on open data (publishable; data.mode: open) — 2026-11-11
+Main dataset: PhysioNet/CinC Challenge 2019 (40,336 ICU patients; hospital A = train/val/calib, hospital B = external test), `results/challenge2019/`. Replication: eICU-CRD demo (1,836 patients, 186 hospitals), `results/eicu_demo/`. Full MIMIC-IV is no longer needed for the paper (credentialing not available in time); MIMIC demo kept as a smoke test only.
+- Repeat events (challenge): HGB 74,681; K 102,820; CREAT 54,921; PLT 53,237 (`cohort/flow.csv`).
+- E1: 73.8% of action-changing K results lie inside the reference range (eICU: 75.1%) — proxies miss decisions.
+- E2: EDCP ≈ B5 direct classifier (AUROC HGB 0.929 vs 0.937, K 0.864 vs 0.865, CREAT 0.833 vs 0.834) — as expected; advantage is target/certificate/explanation, not accuracy.
+- **PLT leakage check (AUROC B5 0.9717 > 0.97 rule):** distance of last value to nearest threshold alone gives AUROC 0.967; with last PLT ≥ 100, P(D) = 0.1%. High AUROC is structural, not leakage. PLT certification is near-trivial (prevalence 2% < α at α ≥ 2%); our model (0.94) is below the distance rule — report plainly.
+- E3 (in-site, 100 resamples): valid for every lab and α. Reduction at α = 1%: HGB 74%, K 41%, CREAT 38%, PLT 98%; at α = 0.5%: CREAT ≈ 2% (tight α → small reduction; report).
+- **E4 external site:** static thresholds from hospital A violate at hospital B for HGB (risk 0.168 at α = 5%; 0.016 at α = 1%); recalibration on 20% of B restores (0.050 / 0.0067). K slightly above at α = 5% (0.055).
+- **E7 online audited control fixes the transfer failure:** HGB at hospital B, α = 5%: static 0.169 → online p = 0.2: 0.050 (reduction 59%), p = 0.1: 0.050 (66%); α = 1%: 0.0162 → 0.0103. K: 0.055 → 0.050. Long-run (not windowed) guarantee: worst 20%-window miss rate can exceed α (e.g. 0.057–0.068).
+- **E7 panels:** naive per-lab certificates violate the draw-level miss rate (CBC 0.057, BMP 0.058 at α = 5%; CBC 0.012 at α = 1%); panel CRC is valid (CBC 0.045, BMP 0.040–0.049) and avoids more draws than valid Bonferroni (BMP 39–45% vs 24%; CBC 88% vs 84%).
+- E7 clustered: patient-level risk ≤ α for all labs; event-level risk can exceed α (PLT 0.017 at α = 1%) — the two guarantees differ, say which one is claimed.
+- E5: top-k SHAP deletions move EDCP far more than random-k (Wilcoxon p < 1e-10, all labs, k ∈ {1,3,5}); additivity error ≤ 3.5e-6.
+- E6: isotonic vs raw EDCP: both valid, raw gives slightly more reduction (HGB 76% vs 74% at α = 1%) → isotonic question resolved: keep either; panel features matter most (no_panel loses 4–8 points of reduction).
+
 ## Observations on demo data (NOT publishable; 100 patients)
 - E1: proxies disagree with D strongly — e.g. 75% of action-changing K results were inside the reference range (`results/E1/table2_labels.csv`).
 - E3: mean realised risk over 100 resamples ≤ α for every lab and α. Proxy baselines at natural thresholds miss more action-changing results (e.g. stability classifier B3, HGB: risk 0.119).
@@ -111,7 +125,8 @@
 - `results/` currently holds demo aggregates and is committed. Keep committing results (fine for aggregates) or ignore and attach to releases?
 
 ## How to run the full experiment
-**One command (Windows PowerShell):** `.\scriptsun_full.ps1` — checks the data folders, verifies itemids, 5% smoke test, full run (E1–E7), figures, zips `results/`. Manual steps below.
+**One command (Windows PowerShell):** `.\scripts
+un_full.ps1` — checks the data folders, verifies itemids, 5% smoke test, full run (E1–E7), figures, zips `results/`. Manual steps below.
 
 1. Get MIMIC-IV access; put `hosp/` and `icu/` under `data/raw/mimiciv/`.
 2. Override file `configs/full.yaml` (already in the repo): `data: {mode: full, root: data/raw/mimiciv}`.

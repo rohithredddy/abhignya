@@ -1,0 +1,54 @@
+name,description,group
+age,age at draw (years),context
+sex_female,1 if female,context
+adm_emergency,admission type: emergency,context
+adm_urgent,admission type: urgent,context
+adm_elective,admission type: elective / same-day surgery,context
+adm_observation,admission type: observation,context
+hours_since_admit,hours from admission to draw,context
+in_icu,1 if in an ICU stay at draw time,context
+hour_of_day,hour of draw (0-23),context
+weekday,day of week of draw (0=Mon),context
+n_prior_admissions,number of earlier admissions of the patient,context
+last,last prior value of target lab,history
+second_last,second-last prior value (within 72 h),history
+hours_since_last,hours since last prior value,history
+count_24h,number of prior values in 24 h,history
+count_72h,number of prior values in 72 h,history
+a0,default action category from last value,history
+dist_boundary,signed distance of last value to nearest boundary of a0 (+ inside),history
+n_cat_changes,category changes so far in admission,history
+last_flag_abnormal,last value flagged abnormal,history
+delta_last2,last minus second-last value,trend
+slope_48h,OLS slope over last 48 h (units/day),trend
+min_48h,minimum over last 48 h,trend
+max_48h,maximum over last 48 h,trend
+std_48h,standard deviation over last 48 h,trend
+HGB_last,last prior HGB value,panel
+HGB_hrs,hours since last prior HGB,panel
+CREAT_last,last prior CREAT value,panel
+CREAT_hrs,hours since last prior CREAT,panel
+PLT_last,last prior PLT value,panel
+PLT_hrs,hours since last prior PLT,panel
+HCT_last,last prior HCT value,panel
+HCT_hrs,hours since last prior HCT,panel
+WBC_last,last prior WBC value,panel
+WBC_hrs,hours since last prior WBC,panel
+NA_last,last prior NA value,panel
+NA_hrs,hours since last prior NA,panel
+CL_last,last prior CL value,panel
+CL_hrs,hours since last prior CL,panel
+HCO3_last,last prior HCO3 value,panel
+HCO3_hrs,hours since last prior HCO3,panel
+BUN_last,last prior BUN value,panel
+BUN_hrs,hours since last prior BUN,panel
+GLU_last,last prior GLU value,panel
+GLU_hrs,hours since last prior GLU,panel
+CA_last,last prior CA value,panel
+CA_hrs,hours since last prior CA,panel
+MG_last,last prior MG value,panel
+MG_hrs,hours since last prior MG,panel
+PHOS_last,last prior PHOS value,panel
+PHOS_hrs,hours since last prior PHOS,panel
+INR_last,last prior INR value,panel
+INR_hrs,hours since last prior INR,panel
