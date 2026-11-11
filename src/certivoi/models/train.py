@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from certivoi.config import Config
-from certivoi.data.split import split_path
+from certivoi.data.split import make_splits
 from certivoi.features.build import build_features, manifest
 from certivoi.labels.actions import action_map
 from certivoi.labels.build import labels_path
@@ -43,7 +43,7 @@ def load_lab_frame(cfg: Config, lab: str) -> tuple[pd.DataFrame, list[str]]:
     meta = pd.read_parquet(fp["meta"])
     labels = pd.read_parquet(labels_path(cfg, lab))
     edge_cols = [c for c in labels.columns if c.startswith("edge_")]
-    splits = pd.read_parquet(split_path(cfg))
+    splits = pd.read_parquet(make_splits(cfg))
     lab_cols = [c for c in LABEL_COLS if c not in feats.columns]  # a0 is also a feature
     df = (feats.merge(labels[["event_id", *lab_cols, *edge_cols]], on="event_id")
           .merge(meta[["event_id", *META_COLS]], on="event_id")

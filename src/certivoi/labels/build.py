@@ -15,7 +15,7 @@ import duckdb
 import pandas as pd
 
 from certivoi.config import Config
-from certivoi.data.cohort import cohort_outputs
+from certivoi.data.cohort import build_cohort
 from certivoi.labels.actions import ActionMap, action_map
 from certivoi.utils.io import stage_dir
 from certivoi.utils.logging import get_logger
@@ -92,12 +92,12 @@ def label_events(events: pd.DataFrame, hist: pd.DataFrame, amap: ActionMap,
 
 def build_labels(cfg: Config, force: bool = False) -> dict[str, Path]:
     """Build and cache labels for every target lab."""
-    co = cohort_outputs(cfg)
     gap = int(cfg.get("cohort.min_gap_minutes"))
     paths = {lab: labels_path(cfg, lab) for lab in cfg.labs}
     if not force and all(p.exists() for p in paths.values()):
         log.info("labels: cached at %s", paths["HGB"].parent)
         return paths
+    co = build_cohort(cfg)
     clean = pd.read_parquet(co["clean_labs"])
     for lab, spec in cfg.labs.items():
         events = pd.read_parquet(co[f"events_{lab}"])
