@@ -1,0 +1,12 @@
+% source: results\challenge2019/E2/table3_performance.csv, results\challenge2019/E3/table4_certified.csv
+\begin{table}[t]\centering\footnotesize
+\caption{Discrimination of $D$ on the test patients and the certified low-value tier (mean over 100 calibration/test re-splits). Tier cells: tests flagged / missed action changes, both in \% of all repeat tests.}
+\label{tab:perf}\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lcccc c}\toprule
+ & AUROC (95\% CI) & AUROC & AUPRC & \multicolumn{2}{c}{Flagged / missed (\%)} \\ \cmidrule(lr){5-6}
+Lab & EDCP & direct & EDCP & $\alpha{=}1\%$ & $\alpha{=}5\%$ \\ \midrule
+Hemoglobin & 0.929 (0.920--0.936) & 0.937 & 0.616 & 73.8 / 0.84 & 91.4 / 4.53 \\
+Potassium & 0.864 (0.856--0.871) & 0.865 & 0.601 & 41.3 / 0.93 & 76.2 / 4.09 \\
+Creatinine & 0.833 (0.820--0.846) & 0.834 & 0.444 & 38.1 / 0.92 & 75.5 / 4.03 \\
+Platelets & 0.940 (0.915--0.964) & 0.972 & 0.439 & 97.8 / 0.94 & 100.0 / 1.90 \\
+\bottomrule\end{tabular}\end{table}

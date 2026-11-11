@@ -1,0 +1,16 @@
+% source: results\challenge2019/E4/temporal.csv, results\challenge2019/E7/table10_online.csv (order=temporal)
+\begin{table}[t]\centering\footnotesize
+\caption{Transfer to an unseen hospital (models and calibration from hospital A, test stream from hospital B). Cells: missed action changes (\%) / tests avoided (\%). Online cells average five audit seeds.}
+\label{tab:external}\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{llcccc}\toprule
+$\alpha$ & Lab & Static & Recalib. 20\% & Online $p{=}0.2$ & Online $p{=}0.1$ \\ \midrule
+\multirow{4}{*}{1\%} & Hemoglobin & 1.62 / 61 & 0.67 / 51 & 1.03 / 44 & 1.06 / 49 \\
+ & Potassium & 0.85 / 28 & 0.91 / 30 & 0.88 / 23 & 0.87 / 25 \\
+ & Creatinine & 0.61 / 29 & 0.60 / 29 & 0.72 / 26 & 0.68 / 28 \\
+ & Platelets & 1.41 / 98 & 0.80 / 96 & 1.04 / 77 & 0.93 / 84 \\
+\midrule
+\multirow{4}{*}{5\%} & Hemoglobin & 16.83 / 97 & 4.98 / 74 & 4.99 / 59 & 5.04 / 66 \\
+ & Potassium & 5.50 / 79 & 3.96 / 70 & 5.01 / 60 & 5.15 / 68 \\
+ & Creatinine & 4.15 / 78 & 4.10 / 78 & 4.96 / 66 & 4.64 / 72 \\
+ & Platelets & 2.38 / 100 & 2.39 / 100 & 2.14 / 80 & 1.96 / 89 \\
+\bottomrule\end{tabular}\end{table}

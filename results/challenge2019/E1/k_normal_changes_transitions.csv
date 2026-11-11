@@ -1,0 +1,5 @@
+from,to,share,n_total
+replete(<3.5),no_action,0.5848918225155849,10908
+no_action,replete(<3.5),0.29427942794279427,10908
+treat(>5.5),replete(<3.5),0.0035753575357535755,10908
+treat(>5.5),no_action,0.11725339200586725,10908
