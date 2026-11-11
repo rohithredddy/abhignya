@@ -1,8 +1,7 @@
 """CertiVOI command-line entry point.
 
-Implements 05_IMPLEMENTATION_ROADMAP Phase 0 (CLI with subcommands). Stages are
-wired here as phases are implemented; unimplemented stages exit with a clear
-message naming the phase that will add them.
+Implements 05_IMPLEMENTATION_ROADMAP (CLI with subcommands). Every stage builds
+(or loads cached) upstream inputs, so any command can run on a fresh checkout.
 
 Usage: python scripts/run.py <command> --config configs/default.yaml [options]
 """
@@ -22,14 +21,6 @@ EXPERIMENTS = ("E1", "E2", "E3", "E4", "E5", "E6")
 log = get_logger("certivoi.run")
 
 
-def _not_yet(phase: int, what: str) -> Callable[[Config, argparse.Namespace], int]:
-    def _run(cfg: Config, args: argparse.Namespace) -> int:
-        log.error("'%s' is not implemented yet (planned in Phase %d).", what, phase)
-        return 2
-
-    return _run
-
-
 def cmd_info(cfg: Config, args: argparse.Namespace) -> int:
     """Print resolved config summary (no data access)."""
     print(f"config:      {cfg.source}")
@@ -44,18 +35,32 @@ def cmd_info(cfg: Config, args: argparse.Namespace) -> int:
 
 
 def cmd_extract(cfg: Config, args: argparse.Namespace) -> int:
-    from certivoi.data.extract import ensure_synthetic_raw, extract
+    from certivoi.data.extract import extract
 
-    if cfg.data_mode == "synthetic":
-        ensure_synthetic_raw(cfg)
     extract(cfg, force=args.force)
+    return 0
+
+
+def cmd_verify(cfg: Config, args: argparse.Namespace) -> int:
+    from certivoi.data.extract import extract
+    from certivoi.data.verify import verify_items
+    from certivoi.utils.io import write_results
+
+    extract(cfg)
+    table, problems = verify_items(cfg)
+    write_results(cfg, "verify_items", {"items": table}, problems=problems)
+    for p in problems:
+        log.error("itemid check: %s", p)
+    if problems:
+        log.error("Item verification failed — stop and review (CONTRIBUTING.md §11).")
+        return 1
+    log.info("All itemids verified.")
     return 0
 
 
 def cmd_cohort(cfg: Config, args: argparse.Namespace) -> int:
     from certivoi.data.cohort import build_cohort
 
-    cmd_extract(cfg, argparse.Namespace(force=False))
     build_cohort(cfg, force=args.force)
     return 0
 
@@ -63,7 +68,6 @@ def cmd_cohort(cfg: Config, args: argparse.Namespace) -> int:
 def cmd_split(cfg: Config, args: argparse.Namespace) -> int:
     from certivoi.data.split import make_splits
 
-    cmd_cohort(cfg, argparse.Namespace(force=False))
     make_splits(cfg, force=args.force)
     return 0
 
@@ -71,7 +75,6 @@ def cmd_split(cfg: Config, args: argparse.Namespace) -> int:
 def cmd_labels(cfg: Config, args: argparse.Namespace) -> int:
     from certivoi.labels.build import build_labels
 
-    cmd_split(cfg, argparse.Namespace(force=False))
     build_labels(cfg, force=args.force)
     return 0
 
@@ -79,7 +82,6 @@ def cmd_labels(cfg: Config, args: argparse.Namespace) -> int:
 def cmd_features(cfg: Config, args: argparse.Namespace) -> int:
     from certivoi.features.build import build_features
 
-    cmd_labels(cfg, argparse.Namespace(force=False))
     build_features(cfg, force=args.force)
     return 0
 
@@ -87,22 +89,47 @@ def cmd_features(cfg: Config, args: argparse.Namespace) -> int:
 def cmd_train(cfg: Config, args: argparse.Namespace) -> int:
     from certivoi.models.train import train_lab
 
-    cmd_features(cfg, argparse.Namespace(force=False))
     for lab in [args.lab] if getattr(args, "lab", None) else list(cfg.labs):
         train_lab(cfg, lab, force=args.force)
+    return 0
+
+
+def run_experiment(cfg: Config, exp_id: str) -> None:
+    from certivoi.experiments import e1, e2, e3, e4, e5, e6
+
+    modules = {"E1": e1, "E2": e2, "E3": e3, "E4": e4, "E5": e5, "E6": e6}
+    log.info("running %s", exp_id)
+    modules[exp_id].run(cfg)
+
+
+def cmd_exp(cfg: Config, args: argparse.Namespace) -> int:
+    run_experiment(cfg, args.exp_id)
+    return 0
+
+
+def cmd_all(cfg: Config, args: argparse.Namespace) -> int:
+    """Full pipeline: verify items, build every stage, run E1–E6."""
+    if cmd_verify(cfg, args) != 0:
+        return 1
+    for step in (cmd_cohort, cmd_split, cmd_labels, cmd_features, cmd_train):
+        step(cfg, args)
+    for exp_id in EXPERIMENTS:
+        run_experiment(cfg, exp_id)
+    log.info("all done: results in %s", cfg.results_dir)
     return 0
 
 
 COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "info": ("show resolved config and its hash", cmd_info),
     "extract": ("raw CSV.gz -> filtered Parquet (DuckDB)", cmd_extract),
+    "verify": ("aggregate itemid/unit verification (fails on mismatch)", cmd_verify),
     "cohort": ("cohort steps + flow table", cmd_cohort),
     "split": ("patient-level and temporal splits", cmd_split),
     "labels": ("action labels a0, D, N, S", cmd_labels),
     "features": ("strictly-prior feature matrices", cmd_features),
     "train": ("fit quantile models and baselines", cmd_train),
-    "exp": ("run one experiment E1-E6", _not_yet(2, "exp")),
-    "all": ("run the whole pipeline", _not_yet(7, "all")),
+    "exp": ("run one experiment E1-E6", cmd_exp),
+    "all": ("run the whole pipeline (verify, stages, E1-E6)", cmd_all),
 }
 
 
@@ -112,7 +139,8 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--override", default=None, help="optional YAML merged over --config")
     common.add_argument("--sample-frac", type=float, default=None,
                         help="patient sample fraction for smoke tests, e.g. 0.05")
-    common.add_argument("--force", action="store_true", help="ignore cached interim artifacts")
+    common.add_argument("--force", action="store_true",
+                        help="recompute this stage even if a cached artifact exists")
 
     parser = argparse.ArgumentParser(
         prog="run.py",
@@ -126,7 +154,6 @@ def build_parser() -> argparse.ArgumentParser:
                            help="train one lab only (default: all)")
         if name == "exp":
             p.add_argument("exp_id", choices=EXPERIMENTS, help="experiment id")
-            p.add_argument("--lab", choices=TARGET_LABS, default=None)
     return parser
 
 
