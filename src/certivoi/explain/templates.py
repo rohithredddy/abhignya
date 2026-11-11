@@ -36,7 +36,8 @@ def reasons(phi_row: np.ndarray, values: np.ndarray, names: list[str],
     out = []
     for i in order:
         desc = descriptions.get(names[i], names[i])
-        out.append(f"{desc} = {_fmt(values[i])} ({up if phi_row[i] > 0 else down})")
+        val = _fmt(values[i]) if np.isfinite(values[i]) else "missing"
+        out.append(f"{desc} = {val} ({up if phi_row[i] > 0 else down})")
     return out
 
 

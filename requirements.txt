@@ -13,5 +13,4 @@ pyyaml>=6.0
 tqdm>=4.66
 pytest>=8.0
 ruff>=0.5
-# optional demo (Phase 8)
-# streamlit>=1.35
+# optional demo (Phase 8): pip install -e .[demo]   (adds streamlit>=1.35)

@@ -1,0 +1,6 @@
+# Override for the credentialed MIMIC-IV run (run locally; CONTRIBUTING.md §4).
+# Put hosp/ and icu/ under data/raw/mimiciv/ first.
+# Usage: python scripts/run.py all --override configs/full.yaml [--sample-frac 0.05]
+data:
+  mode: full
+  root: data/raw/mimiciv

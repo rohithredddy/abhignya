@@ -1,0 +1,8 @@
+# Override for the synthetic demo / quick end-to-end runs (no real data needed).
+# Usage: python scripts/run.py all --override configs/synthetic.yaml
+data:
+  mode: synthetic
+  root: data/raw/synthetic
+synthetic:
+  n_patients: 300
+  seed: 0
