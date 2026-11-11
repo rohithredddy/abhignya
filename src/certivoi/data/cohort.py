@@ -78,10 +78,12 @@ def build_cohort(cfg: Config, force: bool = False) -> dict[str, Path]:
         JOIN '{ex['patients'].as_posix()}' p USING (subject_id)""")
     con.execute(f"CREATE TABLE codes(itemid BIGINT, code VARCHAR); "
                 f"INSERT INTO codes VALUES {_code_map_sql(cfg)}")
-    spec_rows = ", ".join(
-        f"('{c}', '{s.unit}', {s.plausible[0]}, {s.plausible[1]}, "
-        f"{(s.ref_range or (None, None))[0] or 'NULL'}, {(s.ref_range or (None, None))[1] or 'NULL'})"
-        for c, s in cfg.labs.items())
+    def _spec_row(c: str, s) -> str:
+        ref_lo, ref_hi = s.ref_range or (None, None)
+        return (f"('{c}', '{s.unit}', {s.plausible[0]}, {s.plausible[1]}, "
+                f"{ref_lo or 'NULL'}, {ref_hi or 'NULL'})")
+
+    spec_rows = ", ".join(_spec_row(c, s) for c, s in cfg.labs.items())
     con.execute("CREATE TABLE spec(code VARCHAR, unit VARCHAR, lo DOUBLE, hi DOUBLE, "
                 f"ref_lo DOUBLE, ref_hi DOUBLE); INSERT INTO spec VALUES {spec_rows}")
 
