@@ -16,7 +16,7 @@ from typing import Any
 
 import yaml
 
-DATA_MODES = ("demo", "full", "synthetic")
+DATA_MODES = ("demo", "full", "synthetic", "open")  # open = publishable open-access data
 TARGET_LABS = ("HGB", "K", "CREAT", "PLT")
 SPLIT_NAMES = ("train", "val", "calib", "test")
 _SPLIT_SUM_TOL = 1e-9

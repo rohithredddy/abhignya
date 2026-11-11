@@ -1,0 +1,14 @@
+# PhysioNet/CinC Challenge 2019 (open access, CC BY 4.0), converted to the MIMIC layout.
+# 1) bash scripts/00_download_open.sh challenge2019
+# 2) python scripts/run.py convert --source challenge2019 --override configs/challenge2019.yaml
+# 3) python scripts/run.py all --override configs/challenge2019.yaml
+# Site groups replace era groups: the "temporal" split = train hospital A -> test hospital B.
+data:
+  mode: open
+  root: data/raw/converted/challenge2019
+  source_dir: data/raw/challenge2019
+  results_dir: results/challenge2019
+splits:
+  temporal:
+    train_groups: [hospA]
+    test_groups: [hospB]

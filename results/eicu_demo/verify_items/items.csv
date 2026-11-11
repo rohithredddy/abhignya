@@ -1,0 +1,16 @@
+itemid,label,fluid,category,unit,n_rows,n_numeric
+50882,Bicarbonate,Blood,Chemistry,mEq/L,13579,13579
+50893,"Calcium, Total",Blood,Chemistry,mg/dL,14116,14116
+50902,Chloride,Blood,Chemistry,mEq/L,14647,14647
+50912,Creatinine,Blood,Chemistry,mg/dL,14599,14599
+50931,Glucose,Blood,Chemistry,mg/dL,14976,14976
+50960,Magnesium,Blood,Chemistry,mg/dL,7138,7138
+50970,Phosphate,Blood,Chemistry,mg/dL,4161,4161
+50971,Potassium,Blood,Chemistry,mEq/L,16332,16332
+50983,Sodium,Blood,Chemistry,mEq/L,15410,15410
+51006,Urea Nitrogen,Blood,Chemistry,mg/dL,14538,14538
+51221,Hematocrit,Blood,Chemistry,%,14029,14029
+51222,Hemoglobin,Blood,Chemistry,g/dL,14384,14384
+51237,INR(PT),Blood,Chemistry,,4059,4059
+51265,Platelet Count,Blood,Chemistry,K/uL,12688,12688
+51301,White Blood Cells,Blood,Chemistry,K/uL,12673,12673

@@ -41,6 +41,23 @@ def cmd_extract(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_convert(cfg: Config, args: argparse.Namespace) -> int:
+    """Convert an open dataset (data.source_dir) into the MIMIC layout at data.root."""
+    from pathlib import Path
+
+    from certivoi.data.adapters import CONVERTERS
+
+    src = cfg.get("data.source_dir", None)
+    if src is None:
+        log.error("convert needs data.source_dir in the config/override")
+        return 1
+    if (cfg.data_root / "hosp" / "labevents.csv.gz").exists() and not args.force:
+        log.info("convert: %s already exists (use --force to redo)", cfg.data_root)
+        return 0
+    CONVERTERS[args.source](Path(src), cfg.data_root, cfg)
+    return 0
+
+
 def cmd_verify(cfg: Config, args: argparse.Namespace) -> int:
     from certivoi.data.extract import extract
     from certivoi.data.verify import verify_items
@@ -121,6 +138,7 @@ def cmd_all(cfg: Config, args: argparse.Namespace) -> int:
 
 COMMANDS: dict[str, tuple[str, Callable[[Config, argparse.Namespace], int]]] = {
     "info": ("show resolved config and its hash", cmd_info),
+    "convert": ("open dataset (challenge2019 | eicu_demo) -> MIMIC layout", cmd_convert),
     "extract": ("raw CSV.gz -> filtered Parquet (DuckDB)", cmd_extract),
     "verify": ("aggregate itemid/unit verification (fails on mismatch)", cmd_verify),
     "cohort": ("cohort steps + flow table", cmd_cohort),
@@ -152,6 +170,8 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "train":
             p.add_argument("--lab", choices=TARGET_LABS, default=None,
                            help="train one lab only (default: all)")
+        if name == "convert":
+            p.add_argument("--source", choices=("challenge2019", "eicu_demo"), required=True)
         if name == "exp":
             p.add_argument("exp_id", choices=EXPERIMENTS, help="experiment id")
     return parser

@@ -1,0 +1,11 @@
+# eICU-CRD demo v2.0.1 (open access, ODbL), converted to the MIMIC layout.
+# Site groups: first 60% of hospitals (by id) = siteA (train/val/calib), rest = siteB (test).
+data:
+  mode: open
+  root: data/raw/converted/eicu_demo
+  source_dir: data/raw/eicu-demo
+  results_dir: results/eicu_demo
+splits:
+  temporal:
+    train_groups: [siteA]
+    test_groups: [siteB]

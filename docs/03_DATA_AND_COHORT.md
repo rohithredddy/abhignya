@@ -90,3 +90,17 @@ Report a cohort flow table (counts after each step, per lab) — Table 1 of the 
 - Feature engineering in DuckDB SQL window functions or Polars, partitioned by lab.
 - Set `threads` in config (default: physical cores − 1). LightGBM `n_jobs` from same setting.
 - Expected: extraction 15–60 min one-time; per-lab model training minutes, not hours.
+
+## 8. Open datasets (no credentialing) — added 2026-11-11
+Used because PhysioNet credentialing for full MIMIC-IV was not available in time. Both are open access, so row-level inspection is allowed (`data.mode: open`; CONTRIBUTING.md §4 rules for `full` do not apply, but per-event outputs still go under `data/`).
+
+| Source | Licence | Content | Conversion (`certivoi/data/adapters.py`) |
+|---|---|---|---|
+| PhysioNet/CinC Challenge 2019, training sets A and B | CC BY 4.0 | 40,336 ICU patients, hospital A (20,336) and B (20,000); hourly bins of vitals + labs; one ICU stay per patient | one patient = one admission = one ICU stay; `charttime` = base + `ICULOS` hours; `anchor_year_group` = `hospA`/`hospB`; Hgb, Potassium, Creatinine, Platelets → HGB/K/CREAT/PLT; panel labs Hct, WBC, Chloride, HCO3, BUN, Glucose, Calcium, Magnesium, Phosphate (no sodium, INR → missing features); `SepsisLabel` never read |
+| eICU-CRD demo v2.0.1 | ODbL | ~2,500 unit stays, 186 hospitals (2014–2015); minute offsets | hospital stay → admission; unit stays → ICU stays; lab time = unit start (−`hospitaladmitoffset`) + `labresultoffset`; age "> 89" → 90; hospitals sorted by id, first 60% = `siteA`, rest = `siteB` |
+
+Units verified against the config (eICU: K mmol/L = mEq/L, PLT K/mcL = K/µL; Challenge: documented units). Reference ranges are absent → config fallback (§2).
+
+**External-site validation.** `splits.temporal` is re-used with site groups: train/val/calib from `hospA` (`siteA`), test on `hospB` (`siteB`). E4 "temporal" rows and E7 `temporal_model` streams therefore measure transfer to an unseen hospital (with and without recalibration on 20% of the new site).
+
+**Limitations.** Challenge data: hourly resolution (labs in the same hour share a time; the 1-minute leakage gap becomes "earlier hours"), ICU-only, no race/insurance/admission type (subgroups by sex and age only), hospital A is BIDMC (overlaps the MIMIC population). eICU demo: small; one row per lab result, so occasional duplicates across unit stays are removed by cohort de-duplication.
