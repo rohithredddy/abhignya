@@ -38,7 +38,7 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-Many inpatient laboratory tests are repeats, and a large share of them do not change what the care team does next. Earlier models try to find these tests by predicting whether the next value will be normal or stable, but neither property says whether the result would move a decision, and none of these models bounds the harm of skipping a test. We describe CertiVOI, a CPU-only method that estimates, before a repeat test is drawn, the probability that its result falls in a different guideline action category than the last value. Quantile gradient boosting gives a distribution for the new value; the mass outside the current category is the score, which equals the single-step value of information under a 0--1 regret. Conformal risk control then picks a threshold so that the expected rate of missed action changes stays below a chosen level $\alpha$. We add two extensions aimed at deployment: certification of whole blood draws, since tests sharing a tube cannot be skipped one at a time, and an online threshold update that learns from a small random audit of skipped tests. On 285,659 repeat tests from 40,336 ICU patients in two hospitals, the low-value tier covered 38--74\% of hemoglobin, potassium and creatinine tests at $\alpha=1\%$ with the miss rate held. A threshold carried unchanged to the second hospital missed 16.8\% of hemoglobin action changes at $\alpha=5\%$; the audited online update brought this to 5.0\%.
+Many inpatient laboratory tests are repeats, and a large share of them do not change what the care team does next. Earlier models try to find these tests by predicting whether the next value will be normal or stable, but neither property says whether the result would move a decision, and none of these models bounds the harm of skipping a test. We describe CertiVOI, a method that estimates, before a repeat test is drawn, the probability that its result falls in a different guideline action category than the last value. Quantile gradient boosting gives a distribution for the new value; the mass outside the current category is the score, which equals the single-step value of information under a 0--1 regret. Conformal risk control then picks a threshold so that the expected rate of missed action changes stays below a chosen level $\alpha$. We add two extensions aimed at deployment: certification of whole blood draws, since tests sharing a tube cannot be skipped one at a time, and an online threshold update that learns from a small random audit of skipped tests. On 285,659 repeat tests from 40,336 ICU patients in two hospitals, the low-value tier covered 38--74\% of hemoglobin, potassium and creatinine tests at $\alpha=1\%$ with the miss rate held. A threshold carried unchanged to the second hospital missed 16.8\% of hemoglobin action changes at $\alpha=5\%$; the audited online update brought this to 5.0\%.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -59,7 +59,6 @@ This paper makes the following contributions.
 \item To our knowledge, we are the first to certify whole tube draws (CBC, chemistry panel) rather than single analytes, and we show that per-analyte guarantees do not combine.
 \item We propose an online threshold update driven by a random audit of skipped tests, with a long-run bound that does not assume exchangeability, and test it on a hospital the model never saw.
 \end{itemize}
-All code runs on a laptop CPU and only aggregate results are reported.
 
 \section{Related Work}
 \textit{Low-yield laboratory tests.} Xu et al. predicted normal results for common inpatient tests with high discrimination \cite{xu2019lowyield}. Aikens et al. predicted the probability that a repeat result would match the previous one \cite{aikens2023yield}. Yu et al. and later work from the same group trained recurrent models on ICU data to recommend which labs could be dropped, and added a confidence filter \cite{yu2020deep,li2022external,huang2023confidence}. These targets are proxies for action change, and none of the methods controls the rate of missed important results.
@@ -134,7 +133,7 @@ For each prediction we report the median forecast $\hat y$, the signed margin $m
 
 \textit{Baselines.} B1 is a rule (skip when the last value needs no action, the last two values differ by less than the stability margin and the last test was under 24~h ago). B2 and B3 are LightGBM classifiers of normality and stability. B4 is logistic regression and B5 a LightGBM classifier, both trained on $D$ directly. Every score was also passed through the same CRC step.
 
-\textit{Implementation.} Python 3.11 with LightGBM, scikit-learn, DuckDB and SHAP, on an Intel Core i5-1235U laptop (10 cores, 16~GB RAM, no GPU). The full pipeline on the Challenge data took about 64 minutes, of which TreeSHAP on 5,000 explained tests per lab took 34. The online update used $\eta=0.002$ and audit rates $p\in\{0.2,0.1\}$, averaged over five seeds.
+\textit{Implementation.} The pipeline was written in Python 3.11 with LightGBM, scikit-learn, DuckDB and SHAP. SHAP values were computed for 5,000 test events per lab. The online update used $\eta=0.002$ and audit rates $p\in\{0.2,0.1\}$, averaged over five seeds.
 
 \input{tables/tab_cohort}
 
@@ -184,7 +183,6 @@ CertiVOI asks of each repeat test whether its result is likely to change the act
 
 \section*{Acknowledgment}
 The authors thank the PhysioNet team and the Challenge 2019 and eICU contributors for making the data openly available.
-
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
 
