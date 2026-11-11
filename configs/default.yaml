@@ -119,6 +119,7 @@ conformal:
   ltt:
     betas: [0.02, 0.05]
     delta: 0.10
+    grid_size: 100           # LTT lambda grid: 100 score quantiles from n_min to n flagged (02 §5.2)
   mondrian_groups: [sex, age_band, race_group, icu]
   age_bands: [18, 45, 65, 80, 200]
 
