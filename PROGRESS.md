@@ -111,6 +111,8 @@
 - `results/` currently holds demo aggregates and is committed. Keep committing results (fine for aggregates) or ignore and attach to releases?
 
 ## How to run the full experiment
+**One command (Windows PowerShell):** `.\scriptsun_full.ps1` — checks the data folders, verifies itemids, 5% smoke test, full run (E1–E7), figures, zips `results/`. Manual steps below.
+
 1. Get MIMIC-IV access; put `hosp/` and `icu/` under `data/raw/mimiciv/`.
 2. Override file `configs/full.yaml` (already in the repo): `data: {mode: full, root: data/raw/mimiciv}`.
 3. `python scripts/run.py verify --override configs/full.yaml` → inspect `results/verify_items/items.csv` if it fails.

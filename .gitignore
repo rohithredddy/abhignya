@@ -16,3 +16,4 @@ paper/*.bbl
 paper/*.blg
 paper/*.out
 paper/*.pdf
+results_full_*.zip
