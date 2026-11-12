@@ -203,6 +203,53 @@ def fig_tradeoff(cfg_path: str, override: str, out: Path) -> None:
     plt.close(fig)
 
 
+def fig_examples(cfg_path: str, override: str, out: Path) -> None:
+    """Three real potassium test events (one per tier): forecast vs action bands."""
+    import matplotlib.pyplot as plt
+
+    from certivoi.config import load_config
+    from certivoi.demo import prepare_lab
+    from certivoi.triage import HIGH, LOW, POTENTIAL
+    from certivoi.viz.style import SINGLE_COL, figure
+
+    cfg = load_config(cfg_path, override_path=override)
+    view = prepare_lab(cfg, "K", alpha=0.01)
+    ev = view.events
+    picks = []
+    for tier in (LOW, POTENTIAL, HIGH):
+        idx = np.flatnonzero(ev["tier"].to_numpy() == tier)
+        j = idx[np.argsort(ev["width"].to_numpy()[idx])[len(idx) // 2]]   # median-width event
+        picks.append((tier, j))
+    fig, ax = figure(SINGLE_COL, 1.45)
+    bands = [(2.0, 3.5, "#56B4E9", "replete"), (3.5, 5.5, "#009E73", "no action"),
+             (5.5, 7.0, "#D55E00", "treat")]
+    for lo, hi, col, name in bands:
+        ax.axvspan(lo, hi, color=col, alpha=0.13, lw=0)
+        ax.text((lo + hi) / 2, 2.62, name, ha="center", va="bottom", fontsize=5.5, color=col)
+    taus = view.taus
+    label = {LOW: "low value", POTENTIAL: "potentially useful", HIGH: "high value"}
+    for k, (tier, j) in enumerate(picks):
+        q = np.sort(view.quantiles[j])
+        q05, q95 = np.interp([0.05, 0.95], taus, q)
+        r = ev.iloc[j]
+        ax.plot([q05, q95], [k, k], color="#0072B2", lw=1.2, solid_capstyle="butt")
+        ax.plot([r["q_lo"], r["q_hi"]], [k, k], color="#0072B2", lw=4.5, solid_capstyle="butt")
+        ax.plot(r["y_hat"], k, "o", ms=3.5, mfc="white", mec="#0072B2", mew=0.9)
+        ax.plot(r["y_last"], k, "x", ms=4, color="black", mew=0.9)
+        ax.text(6.95, k, f"P = {r['score']:.2f}", ha="right", va="center", fontsize=5.5)
+    ax.set_yticks(range(3), [label[t] for t, _ in picks], fontsize=6)
+    ax.set_ylim(-0.6, 2.95)
+    ax.set_xlim(2.0, 7.0)
+    ax.set_xlabel("potassium (mEq/L)", fontsize=6)
+    ax.tick_params(axis="x", labelsize=5.5)
+    for s in ("left",):
+        ax.spines[s].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    fig.tight_layout()
+    fig.savefig(out / "fig_examples.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--main", default="results/challenge2019")
@@ -219,6 +266,7 @@ def main() -> None:
     tab_panel(m, tabs)
     fig_online("configs/default.yaml", a.override, figs)
     fig_tradeoff("configs/default.yaml", a.override, figs)
+    fig_examples("configs/default.yaml", a.override, figs)
     print("tables and figure written")
 
 
