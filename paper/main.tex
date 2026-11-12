@@ -15,6 +15,9 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \graphicspath{{figures/}}
 \newtheorem{proposition}{Proposition}
+\definecolor{cblue}{HTML}{0072B2}
+\definecolor{corange}{HTML}{E69F00}
+\definecolor{cgreen}{HTML}{009E73}
 
 \begin{document}
 
@@ -48,7 +51,7 @@ Routine laboratory monitoring is one of the most frequent activities in hospital
 
 Prior predictive work has framed the problem statistically, asking whether the coming result will fall within the reference range \cite{xu2019lowyield} or remain close to its predecessor \cite{aikens2023yield}, and recurrent networks have been trained to recommend reductions on the same basis \cite{yu2020deep,li2022external,huang2023confidence}. Decision analysis poses a sharper question: a test carries value only when at least one of its plausible results would lead to a different action \cite{howard1966,pauker1980}. The DECIDE-Lab framework recently applied this principle to laboratory testing \cite{allenbrand2026decidelab}, although with priors and utilities specified by hand rather than estimated from records. The distinction matters in practice. A potassium of 5.0~mEq/L is normal, yet in a patient receiving replacement for hypokalemia it is precisely the value that ends the therapy. Conversely, a fourth consecutive hemoglobin of 7.8~g/dL is abnormal but, on its own, would not prompt a transfusion.
 
-A further obstacle is assurance. In a pre-implementation study of an EHR-embedded reduction tool, clinicians asked for near certainty before any test would be discouraged \cite{rabbani2023targeting}. Published models, however, report discrimination rather than an explicit limit on the number of consequential results a reduction rule would hide.
+A further obstacle is assurance. In a pre-implementation study of an EHR-embedded reduction tool, clinicians asked for near certainty before any test would be discouraged \cite{rabbani2023targeting}. Published models, however, report discrimination rather than an explicit limit on the number of consequential results a reduction rule would hide. A model with an excellent AUROC can still conceal many action changes once a cut-off is chosen, and the size of that loss is rarely stated.
 
 The contributions of this work are as follows:
 \begin{itemize}
@@ -61,96 +64,92 @@ The contributions of this work are as follows:
 \section{Related Work}
 \textit{Low-yield testing.} Xu et al. predicted normal results for common inpatient assays \cite{xu2019lowyield}; Aikens et al. estimated the probability that a repeat value would match the preceding one \cite{aikens2023yield}. Yu et al. and subsequent studies used recurrent models on ICU records and added a confidence filter to their reduction recommendations \cite{yu2020deep,li2022external,huang2023confidence}. All of these optimize a surrogate of action change, and none bounds the rate of missed results that matter.
 
-\textit{Sequential acquisition.} Reinforcement learning can learn ordering policies across many tests \cite{yu2023drl}, but such policies require extensive data, resist inspection and lack finite-sample guarantees. We address the narrower per-test decision.
+\textit{Sequential acquisition.} Reinforcement learning can learn ordering policies across many tests \cite{yu2023drl}, but such policies require extensive data, resist inspection and lack finite-sample guarantees. We address the narrower per-test decision, which can be audited and certified.
 
 \textit{Conformal control.} CRC chooses a threshold that keeps the expectation of a monotone loss below $\alpha$ \cite{angelopoulos2024crc}, Learn-then-Test (LTT) provides high-probability control \cite{angelopoulos2021ltt}, and Mondrian schemes calibrate within strata \cite{vovk2005alrw}. Under temporal drift, adaptive conformal inference \cite{gibbs2021aci} and rolling risk control \cite{feldman2023online} revise the threshold after every observation, which presumes that each label is revealed. When a test is skipped, its label is never produced, a situation closer to partial-feedback conformal prediction \cite{ge2024semibandit}. Hierarchical data with repeated measurements per subject have been studied for prediction sets \cite{dunn2023hierarchical}.
 
 \section{Method}
 \begin{figure}[t]\centering
 \begin{tikzpicture}[node distance=3mm and 2.6mm, every node/.style={font=\scriptsize,align=center},
-  box/.style={draw,rounded corners=1.5pt,minimum height=8mm,text width=16mm,fill=white},
-  >={Stealth[length=1.4mm]}]
-\node[box] (a) {Prior labs, panel,\\context ($<t{-}1$\,min)};
-\node[box,right=of a] (b) {Quantile\\LightGBM, 13 $\tau$};
-\node[box,right=of b] (c) {CDF $\hat F$ $\rightarrow$\\EDCP $\rightarrow$ $s$};
-\node[box,right=of c] (d) {CRC on calib.\\test or draw: $\hat\lambda$};
-\node[box,below=5mm of a] (e) {Repeat test\\at new site};
-\node[box,right=of e] (f) {Flag if $s\le\lambda_t$;\\audit w.p. $p$};
-\node[box,right=of f] (g) {Update $\lambda_{t+1}$\\from audits};
-\node[box,right=of g] (h) {Tier with\\margin/width text};
-\draw[->] (a)--(b); \draw[->] (b)--(c); \draw[->] (c)--(d);
-\draw[->] (e)--(f); \draw[->] (f)--(g); \draw[->] (f.south) to[bend right=25] (h.south);
-\draw[->] (g.north) to[bend right=30] (f.north east);
-\draw[->,dashed] (d.south) -- node[right,font=\tiny]{$\lambda_1$} (g.north east);
+  box/.style={draw=#1!70!black,line width=0.5pt,rounded corners=1.5pt,minimum height=8mm,text width=16mm,fill=white},
+  box/.default=cblue, >={Stealth[length=1.4mm]}]
+\node[box] (a) {Prior labs, panel,\\context};
+\node[box,right=of a] (b) {Quantile\\LightGBM};
+\node[box,right=of b] (c) {CDF $\rightarrow$ EDCP\\$\rightarrow$ score $s$};
+\node[box,right=of c] (d) {CRC on calib.\\(test or draw)};
+\node[box=corange,below=5mm of a] (e) {Repeat test\\at new site};
+\node[box=corange,right=of e] (f) {Flag if $s\le\lambda_t$;\\audit w.p. $p$};
+\node[box=corange,right=of f] (g) {Update $\lambda_t$\\from audits};
+\node[box=cgreen,right=of g] (h) {Tier and\\explanation};
+\draw[->,cblue!80!black] (a)--(b); \draw[->,cblue!80!black] (b)--(c); \draw[->,cblue!80!black] (c)--(d);
+\draw[->,corange!80!black] (e)--(f); \draw[->,corange!80!black] (f)--(g);
+\draw[->,cgreen!70!black] (f.south) to[bend right=25] (h.south);
+\draw[->,corange!80!black] (g.north) to[bend right=30] (f.north east);
+\draw[->,dashed,cblue!80!black] (d.south) -- node[right,font=\tiny]{$\lambda_1$} (g.north east);
 \begin{scope}[on background layer]
-\node[fill=black!6,rounded corners=2pt,fit=(a)(d),inner sep=1.6mm,label={[font=\tiny,anchor=south west]north west:Offline: train and certify}] {};
-\node[fill=black!12,rounded corners=2pt,fit=(e)(h),inner sep=1.6mm,label={[font=\tiny,anchor=north west]south west:Online: deploy and adapt}] {};
+\node[fill=cblue!9,rounded corners=2pt,fit=(a)(d),inner sep=1.6mm,label={[font=\tiny,text=cblue!80!black,anchor=south west]north west:Offline: train and certify}] {};
+\node[fill=corange!12,rounded corners=2pt,fit=(e)(h),inner sep=1.6mm,label={[font=\tiny,text=corange!70!black,anchor=north west]south west:Online: deploy and adapt}] {};
 \end{scope}
 \end{tikzpicture}
 \caption{Overview of CertiVOI. The offline stage forecasts the new value and certifies a threshold on held-out patients; the online stage adapts the threshold at a new site from audited tests.}\label{fig:pipeline}
 \end{figure}
 
 \subsection{Action-anchored label}
-Let $e$ index a resulted measurement $y_e$ of laboratory $L$ taken at time $t_e$ during an admission that already holds a value of $L$ within the preceding 72~h. Predictors are restricted to information recorded before $t_e-1$~min. An action map $A_L$ assigns each value to a management category. We adopt simplified guideline cut-offs: hemoglobin $<7$, $7$--$8$ and $\ge 8$~g/dL \cite{carson2016aabb}; potassium $<3.5$, $3.5$--$5.5$ and $>5.5$~mEq/L; platelets $<10$, $10$--$50$ and $\ge 50\times10^3/\mu$L \cite{kaufman2015platelet}. For creatinine the category is the KDIGO stage \cite{kdigo2012}, determined by a rise of at least 0.3~mg/dL above the 48-h minimum, by ratios of 1.5, 2 and 3 to the 7-day minimum, or by an absolute value of 4.0~mg/dL. Writing $a^0_e$ for the category of the most recent prior value $y^{\text{last}}_e$, the target is
+Each event is a resulted measurement $y_e$ of a laboratory analyte taken during an admission that already holds a value of the same analyte within the preceding 72~h. Predictors are restricted to information recorded at least one minute before the draw. An action map $A$ assigns each value to a management category. We adopt simplified guideline cut-offs: hemoglobin $<7$, $7$--$8$ and $\ge 8$~g/dL \cite{carson2016aabb}; potassium $<3.5$, $3.5$--$5.5$ and $>5.5$~mEq/L; platelets $<10$, $10$--$50$ and $\ge 50\times10^3/\mu$L \cite{kaufman2015platelet}. For creatinine the category is the KDIGO stage \cite{kdigo2012}, determined by a rise of at least 0.3~mg/dL above the 48-h minimum, by ratios of 1.5, 2 and 3 to the 7-day minimum, or by an absolute value of 4.0~mg/dL. Writing $a^0_e$ for the category of the most recent prior value, the target is
 \begin{equation}
-D_e=\mathbb{1}\big[A_L(y_e)\neq a^0_e\big].
+D_e=\mathbb{1}\big[A(y_e)\neq a^0_e\big].
 \label{eq:label}
 \end{equation}
-For comparison, the proxy $N_e$ marks a value inside the reference range and $S_e$ marks an absolute change no larger than 0.5~g/dL, 0.3~mEq/L, 0.2~mg/dL or $20\times10^3/\mu$L.
+For comparison, a normality proxy marks a value inside the reference range and a stability proxy marks an absolute change no larger than 0.5~g/dL, 0.3~mEq/L, 0.2~mg/dL or $20\times10^3/\mu$L.
 
 \subsection{Distributional forecast and EDCP}
-For every laboratory, LightGBM \cite{ke2017lightgbm} is fitted with the pinball loss \cite{koenker1978} at thirteen levels $\tau\in\{0.02,\dots,0.98\}$ to the change $y_e-y^{\text{last}}_e$. The 53--55 predictors summarize the analyte's own trajectory (recent values, 48-h slope, counts and elapsed time), companion analytes from the same panels, and context such as age, sex and time since admission. After monotone rearrangement \cite{chernozhukov2010}, the quantiles define a piecewise-linear distribution function $\hat F$. With $[l_a,u_a)$ denoting the interval of category $a$, the expected decision-change probability (EDCP) is
+For every analyte, LightGBM \cite{ke2017lightgbm} is fitted with the pinball loss \cite{koenker1978} at thirteen quantile levels between 0.02 and 0.98, using the change from the last value as the response. The 53--55 predictors summarize the analyte's own trajectory (recent values, 48-h slope, counts and elapsed time), companion analytes from the same panels, and context such as age, sex and time since admission. After monotone rearrangement \cite{chernozhukov2010}, the quantiles define a piecewise-linear distribution function $\hat F$. With $[l,u)$ denoting the interval of the current category, the expected decision-change probability is
 \begin{equation}
-\mathrm{EDCP}(x_e)=1-\big[\hat F(u_{a^0_e}\mid x_e)-\hat F(l_{a^0_e}\mid x_e)\big].
+\mathrm{EDCP}(x_e)=1-\big[\hat F(u\mid x_e)-\hat F(l\mid x_e)\big].
 \label{eq:edcp}
 \end{equation}
 For creatinine the interval limits are recomputed for each event from its own baselines. EDCP is mapped through isotonic regression fitted on validation patients to give the score $s_e$.
 
-\begin{proposition}
-Assume that the test reveals the category $c$, that the clinician then acts on $c$, that without the test the default $a^0$ is retained, and that the regret is $r(a,c)=\mathbb{1}[a\neq c]$. Then the value of information of the test equals $\Pr(c\neq a^0\mid x)$, the quantity estimated by \eqref{eq:edcp}.
-\end{proposition}
-\begin{IEEEproof}
-The expected regret avoided is $\mathbb{E}_c[r(a^0,c)-r(c,c)]=\mathbb{E}_c[\mathbb{1}(c\neq a^0)]$.
-\end{IEEEproof}
+The score has a direct decision-theoretic reading. If the test reveals the category, the clinician acts on it, the current action is retained otherwise, and every wrong action carries the same regret, then the expected regret avoided by testing is exactly the probability that the category changes. EDCP is therefore an estimate of the single-step value of information of the test.
 
 \subsection{Certified low-value tier}
-A test is labelled low value when $s_e\le\lambda$, and suppressing it incurs the loss $\ell_e(\lambda)=D_e\mathbb{1}[s_e\le\lambda]$, which is non-decreasing in $\lambda$. Given $n$ calibration events drawn from patients unseen during training, CRC selects
+A test is labelled low value when $s_e\le\lambda$, and suppressing it is costly only if $D_e=1$. Given $n$ calibration events drawn from patients unseen during training, CRC selects
 \begin{equation}
-\hat\lambda=\max\Big\{\lambda:\ \textstyle\sum_{i=1}^{n}\ell_i(\lambda)+1\le\alpha(n+1)\Big\},
+\hat\lambda=\max\Big\{\lambda:\ \textstyle\sum_{i=1}^{n}D_i\,\mathbb{1}[s_i\le\lambda]+1\le\alpha(n+1)\Big\},
 \label{eq:crc}
 \end{equation}
-which ensures $\mathbb{E}[\ell_{\text{new}}(\hat\lambda)]\le\alpha$ whenever calibration and future events are exchangeable \cite{angelopoulos2024crc}. Put differently, action changes concealed by the tier make up at most a fraction $\alpha$ of all repeat tests. LTT with exact binomial p-values is run alongside; it bounds the miss rate among flagged tests by $\beta$ with probability $1-\delta$ \cite{angelopoulos2021ltt}. Scores above a validation cut-off with precision 0.5 form a high-value tier, and the remainder are labelled potentially useful.
+which ensures that the expected loss on a future event stays below $\alpha$ whenever calibration and future events are exchangeable \cite{angelopoulos2024crc}. Put differently, action changes concealed by the tier make up at most a fraction $\alpha$ of all repeat tests. LTT with exact binomial p-values is run alongside; it bounds the miss rate among flagged tests by $\beta$ with probability $1-\delta$ \cite{angelopoulos2021ltt}. Scores above a validation cut-off with precision 0.5 form a high-value tier, and the remainder are labelled potentially useful.
 
-Because repeat tests of one patient are dependent whereas patients are exchangeable by design of the split, we also apply \eqref{eq:crc} at the patient level, replacing $\ell_i$ by the patient average $L_i(\lambda)=m_i^{-1}\sum_{e\in i}\ell_e(\lambda)$. The resulting guarantee concerns the expected share of missed changes within a new patient.
+Repeat tests of one patient are dependent, whereas patients are exchangeable by design of the split. We therefore also apply \eqref{eq:crc} with each patient as the unit, replacing the event loss by the patient's average loss. The resulting guarantee concerns the expected share of missed changes within a new patient.
 
 \subsection{Draw-level certification}
-Hemoglobin and platelets are measured from one CBC tube, and potassium and creatinine from one chemistry tube. A draw may be omitted only when all of its analytes are low value, and it conceals a change whenever any analyte changes category. If each analyte $j$ of panel $P$ is certified separately at level $\alpha$ and the draw is omitted when all are flagged, a concealed change implies at least one flagged analyte with $D_j=1$; the union bound then gives only $|P|\alpha$. Bonferroni correction ($\alpha/|P|$ per analyte) restores validity at the cost of efficiency. We instead define $D_P=\max_j D_j$ and the draw score $s_P=1-\prod_j(1-s_j)$, and apply \eqref{eq:crc} to draws. The guarantee holds for any choice of $s_P$; the choice affects only the number of draws avoided.
+Hemoglobin and platelets are measured from one CBC tube, and potassium and creatinine from one chemistry tube. A draw may be omitted only when all of its analytes are low value, and it conceals a change whenever any analyte changes category. If each analyte is certified separately at level $\alpha$ and the draw is omitted when all are flagged, a concealed change implies at least one flagged analyte that changed; the union bound then guarantees only $k\alpha$ for a panel of $k$ analytes. Bonferroni correction restores validity at the cost of efficiency. We instead label a draw positive when any of its analytes changes category, score it by the noisy-or combination of its analyte scores, and apply \eqref{eq:crc} to draws. The guarantee holds for any choice of draw score; the choice affects only the number of draws avoided.
 
 \subsection{Online control with audited feedback}
-The guarantee in \eqref{eq:crc} relies on similarity between calibration and deployment. At a new site the threshold should adapt, but a suppressed test yields no result from which to learn. We therefore perform each flagged test anyway with probability $p$, independently of all else. Let $u_t$ be the rank of $s_t$ among calibration scores, $f_t=\mathbb{1}[u_t\le\lambda_t]$ the flag, $A_t$ the audit indicator and $\hat\ell_t=D_tf_tA_t/p$, which requires $D_t$ only for tests actually run. The threshold, initialized at the rank of $\hat\lambda$, evolves as
+The guarantee in \eqref{eq:crc} relies on similarity between calibration and deployment. At a new site the threshold should adapt, but a suppressed test yields no result from which to learn. We therefore perform each flagged test anyway with probability $p$, independently of all else. Let $f_t$ indicate that test $t$ is flagged (its score rank among calibration scores is at most $\lambda_t$) and $A_t$ that it is audited. The inverse-probability estimate $\hat\ell_t=D_tf_tA_t/p$ needs the outcome only for tests actually run, and the threshold, initialized at the rank of $\hat\lambda$, evolves as
 \begin{equation}
 \lambda_{t+1}=\min\big\{\lambda_t+\eta(\alpha-\hat\ell_t),\,1\big\}.
 \label{eq:online}
 \end{equation}
 
 \begin{proposition}
-For any sequence of scores and outcomes, \eqref{eq:online} satisfies $T^{-1}\sum_{t\le T}\hat\ell_t\le\alpha+\{\lambda_1+\eta(p^{-1}-\alpha)\}/(\eta T)$.
+For any sequence of scores and outcomes, the average of $\hat\ell_t$ over the first $T$ tests is at most $\alpha+(\lambda_1+\eta/p)/(\eta T)$.
 \end{proposition}
 \begin{IEEEproof}
-Truncation at one can only decrease $\lambda$, so $\lambda_{T+1}-\lambda_1\le\eta\sum_t(\alpha-\hat\ell_t)$. If $\lambda_t<0$ no test is flagged and $\lambda$ increases, while from $\lambda_t\ge0$ a single step reduces it by at most $\eta(p^{-1}-\alpha)$. Hence $\lambda_t\ge-\eta(p^{-1}-\alpha)$ for every $t$, and rearrangement yields the claim.
+The threshold never falls below $-\eta/p$, because a negative threshold flags nothing and can only rise, while one step from a non-negative value lowers it by at most $\eta/p$. Truncation at one only removes upward steps. Summing \eqref{eq:online} over $T$ steps and using this lower limit gives the bound.
 \end{IEEEproof}
 
-Since audits are independent, $\mathbb{E}[\hat\ell_t\mid\text{history},s_t,D_t]=D_tf_t$; the realized and estimated miss rates therefore differ by an average of bounded martingale increments that vanishes at rate $O(p^{-1}T^{-1/2})$. The long-run miss rate is thus at most $\alpha$ asymptotically, whatever the drift. Audited tests are still drawn, so the effective reduction equals the share of tests that are flagged and not audited.
+Since audits are independent of the outcome, $\hat\ell_t$ is an unbiased estimate of the true loss given the past, and the gap between realized and estimated miss rates averages out as the stream grows. The long-run miss rate is therefore at most $\alpha$ whatever the drift. Audited tests are still drawn, so the effective reduction equals the share of tests that are flagged and not audited.
 
 \subsection{Explanation}
-For each prediction we report the median forecast $\hat y$, its signed margin $m$ to the nearest boundary of the current category, and the 80\% interval width $w=\hat q_{0.9}-\hat q_{0.1}$. A test is uninformative either because $\hat y$ lies far from a threshold or because the forecast is tight, and $\rho=m/w$ combines the two. Interventional TreeSHAP \cite{lundberg2017unified,lundberg2020trees} applied to the median model attributes the margin, and the difference between attributions of the $\tau=0.9$ and $\tau=0.1$ models attributes the width. The leading attributions are rendered as a short structured sentence.
+For each prediction we report the median forecast, its signed margin to the nearest boundary of the current category, and the width of the 80\% predictive interval. A test is uninformative either because the forecast lies far from a threshold or because it is tight, and the ratio $\rho$ of margin to width combines the two. Interventional TreeSHAP \cite{lundberg2017unified,lundberg2020trees} applied to the median model attributes the margin, and the difference between attributions of the 0.9 and 0.1 quantile models attributes the width. The leading attributions are rendered as a short structured sentence.
 
 \section{Experimental Setup}
 \textit{Data.} The primary cohort is the public training set of the PhysioNet/Computing in Cardiology Challenge 2019 \cite{reyna2020sepsis,goldberger2000physionet}, comprising 40,336 adult ICU stays from two hospital systems (A: 20,336; B: 20,000) recorded at hourly resolution. The sepsis label was not used. The cohort contained 74,681 repeat hemoglobin, 102,820 potassium, 54,921 creatinine and 53,237 platelet tests. The eICU demonstration database \cite{pollard2018eicu} (1,836 patients, 186 hospitals, minute-level timestamps) served as a replication set.
 
 \textit{Protocol.} Patients were allocated at random to training, validation, calibration and test sets (60/10/15/15\%; 18,127, 3,022, 4,532 and 4,532 patients with an eligible test). For external evaluation, models and thresholds were built on hospital A only and applied to the 13,867 eligible hospital B patients. CRC validity was assessed over 100 random re-partitions of held-out patients into calibration and test halves, and confidence intervals were obtained from 1,000 patient-level bootstrap samples.
 
-\textit{Comparators.} B1 is a rule that skips a test when the last value requires no action, the last two values differ by less than the stability margin and fewer than 24~h have elapsed. B2 and B3 are LightGBM classifiers of normality and stability. B4 (logistic regression) and B5 (LightGBM) are trained on $D$ directly. Every score was additionally passed through the same CRC step. The online update used $\eta=0.002$ and $p\in\{0.2,0.1\}$, averaged over five random seeds; SHAP values were computed for 5,000 test events per laboratory.
+\textit{Comparators.} B1 is a rule that skips a test when the last value requires no action, the last two values differ by less than the stability margin and fewer than 24~h have elapsed. B2 and B3 are LightGBM classifiers of normality and stability. B4 (logistic regression) and B5 (LightGBM) are trained on the action label directly. Every score was additionally passed through the same CRC step. The online update used $\eta=0.002$ and audit rates of 0.2 and 0.1, averaged over five random seeds; SHAP values were computed for 5,000 test events per analyte.
 
 \input{tables/tab_cohort}
 
@@ -159,7 +158,7 @@ For each prediction we report the median forecast $\hat y$, its signed margin $m
 Table~\ref{tab:cohort} reports the prevalence of action changes and the share that each proxy would have classed as uninformative. Potassium shows the starkest mismatch: 73.8\% of action-changing results were within the reference range, a figure reproduced almost exactly on eICU (75.1\%). In 70.2\% of these cases the patient was returning to the no-action band from either side, the point at which replacement or potassium-lowering therapy is discontinued. For platelets, 50.9\% of action changes involved a shift of no more than $20\times10^3/\mu$L, since near a threshold a modest movement suffices to change the category. A normality or stability criterion would discard exactly these results.
 
 \subsection{Discrimination}
-EDCP achieved high discrimination for all four analytes (Table~\ref{tab:perf}), and its expected calibration error did not exceed 0.008. The direct classifier B5 performed comparably or marginally better; the advantage of the forecaster therefore lies not in accuracy but in a full predictive distribution that supports explanation and alternative thresholds. Since an AUROC of 0.972 (B5, platelets) might indicate leakage, we compared it with a model-free score, the distance from the last value to the nearest threshold. This score reached 0.967 for platelets but only 0.888, 0.690 and 0.651 for hemoglobin, potassium and creatinine: platelet action changes are rare and concentrated in patients already close to 10 or 50, which makes that task intrinsically easy, and there the simple score outperformed EDCP.
+EDCP achieved high discrimination for all four analytes (Table~\ref{tab:perf}), and its expected calibration error did not exceed 0.008. The direct classifier B5 performed comparably or marginally better; the advantage of the forecaster therefore lies not in accuracy but in a full predictive distribution that supports explanation and alternative thresholds. Since an AUROC of 0.972 (B5, platelets) might indicate leakage, we compared it with a model-free score, the distance from the last value to the nearest threshold. This score reached 0.967 for platelets but only 0.888, 0.690 and 0.651 for hemoglobin, potassium and creatinine: platelet action changes are rare and concentrated in patients already close to 10 or 50, which makes that task intrinsically easy, and there the simple score outperformed EDCP. On eICU, EDCP reached AUROCs of 0.888, 0.821 and 0.859 for hemoglobin, potassium and creatinine, again within 0.012 of the direct classifier.
 
 \input{tables/tab_perf}
 
@@ -168,15 +167,21 @@ EDCP achieved high discrimination for all four analytes (Table~\ref{tab:perf}), 
 \caption{Missed action changes versus share of tests flagged on the test patients as the threshold varies. Markers are the CRC operating points of EDCP at $\alpha=1\%$ (circle) and $5\%$ (square), selected on calibration patients.}\label{fig:tradeoff}
 \end{figure}
 
-A conventional probability cut-off of 0.5 offers no control over the miss rate. Applied to potassium, the normality classifier suppressed tests concealing 13.5\% action changes (as a share of all tests), and EDCP itself, without CRC, concealed 7.7\% for potassium and 9.9\% for creatinine. Fig.~\ref{fig:tradeoff} shows why the target matters: across the whole operating range, scores trained on the action label conceal far fewer changes than the proxy classifiers for the same number of suppressed tests.
+A conventional probability cut-off of 0.5 offers no control over the miss rate. Applied to potassium, the normality classifier suppressed tests concealing 13.5\% action changes (as a share of all tests), and EDCP itself, without CRC, concealed 7.7\% for potassium and 9.9\% for creatinine. Fig.~\ref{fig:tradeoff} shows why the target matters: across the whole operating range, scores trained on the action label conceal far fewer changes than the proxy classifiers for the same number of suppressed tests. For hemoglobin, flagging half of the tests concealed 3.4\% action changes with the stability classifier and 1.3\% with the normality classifier, against 0.1\% for the direct classifier; EDCP concealed 0.3\% while flagging an even larger 60\%.
 
 \subsection{Certified reduction}
-Under CRC, the mean miss rate across 100 re-partitions remained below $\alpha$ for every analyte and every level from 0.5\% to 5\%. At $\alpha=1\%$ the low-value tier comprised 73.8\% of hemoglobin, 41.3\% of potassium and 38.1\% of creatinine tests (Table~\ref{tab:perf}). The guarantee is in expectation, and individual partitions occasionally exceeded the target (95th percentile 0.92--1.16\% at $\alpha=1\%$). Platelets are degenerate, because action changes were rarer than $\alpha$ for $\alpha\ge2\%$. At the most stringent level, $\alpha=0.5\%$, only 1.8\% of creatinine tests could be certified. With CRC applied to every comparator at $\alpha=5\%$, B5 retained slightly more tests than EDCP (potassium: 82.0\% versus 76.2\%), while the rule B1 retained 26--30\%. LTT ($\beta=5\%$, $\delta=0.1$) flagged 89.1\%, 71.8\% and 64.2\% of hemoglobin, potassium and creatinine tests. The patient-level variant met its own criterion for all analytes and levels with a similar tier size (77.9\% and 41.6\% for hemoglobin and potassium at $\alpha=1\%$). Within sex and age strata, miss rates at $\alpha=1\%$ ranged from 0.65\% to 1.17\% on the single test partition, and Mondrian calibration did not narrow this range consistently.
+Under CRC, the mean miss rate across 100 re-partitions remained below $\alpha$ for every analyte and every level from 0.5\% to 5\%. At $\alpha=1\%$ the low-value tier comprised 73.8\% of hemoglobin, 41.3\% of potassium and 38.1\% of creatinine tests (Table~\ref{tab:perf}), corresponding to roughly 476, 343 and 181 avoidable tests per 1,000 patient-days. The guarantee is in expectation, and individual partitions occasionally exceeded the target (95th percentile 0.92--1.16\% at $\alpha=1\%$). Platelets are degenerate, because action changes were rarer than $\alpha$ for $\alpha\ge2\%$. At the most stringent level, $\alpha=0.5\%$, only 1.8\% of creatinine tests could be certified.
+
+The three tiers separate tests sharply. At $\alpha=1\%$, the high-value tier held 15.3\%, 18.2\% and 5.8\% of hemoglobin, potassium and creatinine tests, and 52--62\% of those results did change the action. Among tests in the low-value tier, only 1.1--2.4\% changed it. The intermediate tier, where the forecast straddles a threshold, is where clinical judgment is most needed.
+
+With CRC applied to every comparator at $\alpha=5\%$, B5 retained slightly more tests than EDCP (potassium: 82.0\% versus 76.2\%), while the rule B1 retained 26--30\%. LTT ($\beta=5\%$, $\delta=0.1$) flagged 89.1\%, 71.8\% and 64.2\% of hemoglobin, potassium and creatinine tests. The patient-level variant met its own criterion for all analytes and levels with a similar tier size (77.9\% and 41.6\% for hemoglobin and potassium at $\alpha=1\%$). Within sex and age strata, miss rates at $\alpha=1\%$ ranged from 0.65\% to 1.17\% on the single test partition, and Mondrian calibration did not narrow this range consistently.
+
+The results depend on the action map. With a single transfusion threshold of 7~g/dL, action changes in hemoglobin fell to 3.5\% of tests and 94.7\% could be certified at $\alpha=1\%$; widening the potassium band to 3.0--6.0~mEq/L gave 3.3\% and 92.5\%. Institutions with more permissive thresholds would therefore see larger reductions under the same guarantee.
 
 \input{tables/tab_external}
 
 \subsection{Transfer to an unseen hospital}
-Table~\ref{tab:external} summarizes the transfer from hospital A to hospital B. For potassium, creatinine and platelets the static threshold remained near its nominal level, whereas for hemoglobin it did not: 16.8\% of tests at hospital B were concealed action changes at a nominal 5\%, and 1.62\% at 1\%. Recalibration on 20\% of hospital B patients corrected the deviation but presupposes a labelled sample from the new site before deployment. The audited update requires no such sample. Auditing one flagged test in five reduced the hemoglobin miss rate to 4.99\% while 59\% of tests were still avoided (Fig.~\ref{fig:online}); auditing one in ten gave 5.04\% and 66\%. For this stream, Proposition~2 limits the estimated miss rate to 6.9\%. The guarantee is cumulative rather than windowed, and over the worst fifth of the stream the miss rate reached 5.7\%.
+Table~\ref{tab:external} summarizes the transfer from hospital A to hospital B. For potassium, creatinine and platelets the static threshold remained near its nominal level, whereas for hemoglobin it did not: 16.8\% of tests at hospital B were concealed action changes at a nominal 5\%, and 1.62\% at 1\%. Recalibration on 20\% of hospital B patients corrected the deviation but presupposes a labelled sample from the new site before deployment. The audited update requires no such sample. Auditing one flagged test in five reduced the hemoglobin miss rate to 4.99\% while 59\% of tests were still avoided (Fig.~\ref{fig:online}); auditing one in ten gave 5.04\% and 66\%. For this stream, Proposition~1 limits the estimated miss rate to 6.9\%. The guarantee is cumulative rather than windowed, and over the worst fifth of the stream the miss rate reached 5.7\%. A smaller shift appeared on eICU between two disjoint groups of hospitals, where static thresholds at $\alpha=5\%$ gave 5.06\% for hemoglobin and 5.73\% for potassium.
 
 \begin{figure}[t]\centering
 \includegraphics[width=\columnwidth]{fig_online}
@@ -189,20 +194,22 @@ Table~\ref{tab:external} summarizes the transfer from hospital A to hospital B. 
 Combining analyte-level certificates violated the draw-level target (Table~\ref{tab:panel}): 5.68\% for the CBC and 5.82\% for the chemistry draw at $\alpha=5\%$, and 1.20\% for the CBC at $\alpha=1\%$. Bonferroni correction was valid but conservative, avoiding only 24\% of chemistry draws at $\alpha=5\%$. Draw-level CRC met the target while avoiding 45\% of chemistry and 88\% of CBC draws at the same level. The eICU cohort reproduced the pattern (chemistry draw at $\alpha=5\%$: 6.46\% analyte-level versus 4.71\% draw-level).
 
 \subsection{Explanations and ablations}
-The ratio $\rho$ was strongly associated with EDCP (Spearman $-0.85$, $-0.95$ and $-0.93$ for hemoglobin, potassium and creatinine; $-0.49$ for platelets). Replacing the most influential feature of a test with a background value changed EDCP by 0.064, 0.102, 0.061 and 0.026 on average, compared with 0.001--0.007 for a randomly chosen feature (Wilcoxon $p<0.001$ for each analyte), and SHAP attributions summed to the model output within $3.5\times10^{-6}$. A representative output for potassium reads: ``Low value (certified at $\alpha=1\%$); predicted 4.3~mEq/L (80\% range 4.0--4.8), 0.80~mEq/L inside the current range; P(action change)~$\approx$~0.02.'' Removing the companion-analyte features had the largest effect, shrinking the tier at $\alpha=1\%$ from 73.8\% to 68.8\%, 41.3\% to 33.8\% and 38.1\% to 33.9\% for hemoglobin, potassium and creatinine. Omitting isotonic calibration preserved validity and slightly enlarged the tier.
+The ratio $\rho$ was strongly associated with EDCP (Spearman $-0.85$, $-0.95$ and $-0.93$ for hemoglobin, potassium and creatinine; $-0.49$ for platelets). Replacing the most influential feature of a test with a background value changed EDCP by 0.064, 0.102, 0.061 and 0.026 on average, compared with 0.001--0.007 for a randomly chosen feature (Wilcoxon $p<0.001$ for each analyte), and SHAP attributions summed to the model output within $3.5\times10^{-6}$. The attributions were clinically plausible. The median forecast of hemoglobin was driven mainly by its last value, the latest hematocrit and the distance to the nearest threshold; that of potassium by its last value, the time since it was measured and the most recent change; that of creatinine by urea nitrogen, the last value and the 7-day baseline. For hemoglobin and potassium, forecast width depended mostly on how long ago the analyte or a companion had last been measured. A representative output for potassium reads: ``Low value (certified at $\alpha=1\%$); predicted 4.3~mEq/L (80\% range 4.0--4.8), 0.80~mEq/L inside the current range; P(action change)~$\approx$~0.02.'' Removing the companion-analyte features had the largest effect, shrinking the tier at $\alpha=1\%$ from 73.8\% to 68.8\%, 41.3\% to 33.8\% and 38.1\% to 33.9\% for hemoglobin, potassium and creatinine. Omitting isotonic calibration preserved validity and slightly enlarged the tier.
 
 \section{Discussion}
 Three observations emerge. First, the target matters more than the learner: proxy labels overlook most potassium decisions, whereas two quite different models trained on the action label behave almost identically. Second, a certificate obtained at one hospital may not survive at another, and for hemoglobin the deviation was large despite the clinical similarity of the two sites. A model deployed with a fixed threshold would have appeared safe during validation yet been unsafe in use; the audited update corrected this at the expense of performing a small share of flagged tests, which doubles as continuous post-deployment monitoring. Third, the operative unit is the tube. Analyte-level certificates are convenient to report but do not describe the decision actually taken at the bedside.
+
+In practice, the low-value tier would be presented as a prompt rather than an automatic cancellation, with the predicted range and the reasons shown beside the order. The level $\alpha$ is a policy choice: at 1\% the hemoglobin tier already covers almost three quarters of repeat tests, whereas for creatinine a looser level is needed before the reduction becomes substantial. Because the bound is stated in terms of missed action changes, it can be discussed with clinicians directly, without translating AUROC or calibration curves into clinical risk.
 
 Several limitations apply. The primary cohort is restricted to intensive care, is recorded at hourly resolution and lacks ethnicity, insurance and admission details, so subgroup analysis was confined to sex and age. Only ordered tests are observed; a test may have been requested precisely because a change was anticipated, and interventions between draws influence the next value. The action maps are simplified and ignore context such as active bleeding or cardiac disease. The analysis values one test at a time and ignores the option value of later tests. Finally, all guarantees are marginal and do not bound the miss rate for an individual patient.
 
 \section{Conclusion}
 CertiVOI evaluates each repeat test by the probability that its result alters the clinical action, and converts that probability into a tier with an explicit bound on concealed action changes. Certifying complete draws and adapting the threshold from audited results kept the bound intact in settings where a static analyte-level threshold failed. Future work will incorporate clinician-elicited utilities in place of 0--1 regret, validation on general wards, and a prospective audit study.
 
-\section*{Acknowledgment}
-The authors thank the PhysioNet team and the contributors to the Challenge 2019 and eICU databases for making the data openly available.
-
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
 
+\makeatletter
+\typeout{ENDPOS page=\thepage\space col=\if@firstcolumn 1\else 2\fi\space used=\the\pagetotal\space goal=\the\pagegoal}
+\makeatother
 \end{document}

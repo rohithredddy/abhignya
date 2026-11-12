@@ -148,10 +148,12 @@ def fig_online(cfg_path: str, override: str, out: Path) -> None:
         w = 2000
         runs = {"static": static_result(u, d, lam1),
                 "online, $p$=0.2": online_risk_control(u, d, a, eta, 0.2, lam1, rng)}
-        for (name, r), ls, col in zip(runs.items(), ("-", "--"), ("black", "0.45"), strict=True):
+        for (name, r), ls, col in zip(runs.items(), ("-", "-"), ("#D55E00", "#0072B2"),
+                                      strict=True):
             c = np.convolve(r.loss, np.ones(w) / w, mode="valid")
-            ax.plot(np.arange(len(c)) + w, 100 * c, ls, color=col, lw=0.9, label=name)
-        ax.axhline(100 * a, color="0.6", ls=":", lw=0.8)
+            ax.plot(np.arange(len(c)) + w, 100 * c, ls, color=col, lw=1.1, label=name)
+        ax.axhline(100 * a, color="0.3", ls=":", lw=0.9)
+        ax.grid(axis="y", color="0.9", lw=0.5)
         ax.set_title(NAME[lab], fontsize=7)
         ax.set_xlabel("tests at hospital B", fontsize=6)
         ax.tick_params(labelsize=5.5)
@@ -173,8 +175,8 @@ def fig_tradeoff(cfg_path: str, override: str, out: Path) -> None:
     from certivoi.viz.style import SINGLE_COL, figure
 
     cfg = load_config(cfg_path, override_path=override)
-    styles = {"ours": ("EDCP", "-", "black"), "B5": ("Direct", "--", "0.35"),
-              "B3": ("Stability", "-.", "0.55"), "B2": ("Normality", ":", "0.55")}
+    styles = {"ours": ("EDCP", "-", "#0072B2"), "B5": ("Direct", "--", "#E69F00"),
+              "B3": ("Stability", "-.", "#009E73"), "B2": ("Normality", ":", "#CC79A7")}
     fig, axes = figure(SINGLE_COL, 1.75, ncols=3)
     for ax, lab in zip(np.atleast_1d(axes), ("HGB", "K", "CREAT"), strict=True):
         df = pd.read_parquet(train_lab(cfg, lab))
@@ -184,11 +186,11 @@ def fig_tradeoff(cfg_path: str, override: str, out: Path) -> None:
             s = te[f"score_{model}"].to_numpy()
             lams = np.unique(np.quantile(s, np.linspace(0, 1, 201)))
             curve = np.array([risk_and_reduction(s, d, lam) for lam in lams])
-            ax.plot(100 * curve[:, 1], 100 * curve[:, 0], ls, color=col, lw=0.9, label=name)
+            ax.plot(100 * curve[:, 1], 100 * curve[:, 0], ls, color=col, lw=1.2, label=name)
         for a, mk in ((0.01, "o"), (0.05, "s")):
             lam = crc_threshold(cal["score_ours"].to_numpy(), cal["D"].to_numpy(), a)
             r, red = risk_and_reduction(te["score_ours"].to_numpy(), d, lam)
-            ax.plot(100 * red, 100 * r, mk, ms=3.2, mfc="white", mec="black", mew=0.8)
+            ax.plot(100 * red, 100 * r, mk, ms=3.6, mfc="#D55E00", mec="black", mew=0.5)
         ax.set_title(NAME[lab], fontsize=7)
         ax.set_xlim(0, 100)
         ax.set_ylim(0, 8)
