@@ -163,6 +163,44 @@ def fig_online(cfg_path: str, override: str, out: Path) -> None:
     plt.close(fig)
 
 
+def fig_tradeoff(cfg_path: str, override: str, out: Path) -> None:
+    """Miss rate vs share of tests flagged on the test split, EDCP vs B5 vs proxies."""
+    import matplotlib.pyplot as plt
+
+    from certivoi.config import load_config
+    from certivoi.conformal.crc import crc_threshold, risk_and_reduction
+    from certivoi.models.train import train_lab
+    from certivoi.viz.style import SINGLE_COL, figure
+
+    cfg = load_config(cfg_path, override_path=override)
+    styles = {"ours": ("EDCP", "-", "black"), "B5": ("Direct", "--", "0.35"),
+              "B3": ("Stability", "-.", "0.55"), "B2": ("Normality", ":", "0.55")}
+    fig, axes = figure(SINGLE_COL, 1.75, ncols=3)
+    for ax, lab in zip(np.atleast_1d(axes), ("HGB", "K", "CREAT"), strict=True):
+        df = pd.read_parquet(train_lab(cfg, lab))
+        cal, te = df[df["split"] == "calib"], df[df["split"] == "test"]
+        d = te["D"].to_numpy()
+        for model, (name, ls, col) in styles.items():
+            s = te[f"score_{model}"].to_numpy()
+            lams = np.unique(np.quantile(s, np.linspace(0, 1, 201)))
+            curve = np.array([risk_and_reduction(s, d, lam) for lam in lams])
+            ax.plot(100 * curve[:, 1], 100 * curve[:, 0], ls, color=col, lw=0.9, label=name)
+        for a, mk in ((0.01, "o"), (0.05, "s")):
+            lam = crc_threshold(cal["score_ours"].to_numpy(), cal["D"].to_numpy(), a)
+            r, red = risk_and_reduction(te["score_ours"].to_numpy(), d, lam)
+            ax.plot(100 * red, 100 * r, mk, ms=3.2, mfc="white", mec="black", mew=0.8)
+        ax.set_title(NAME[lab], fontsize=7)
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 8)
+        ax.set_xlabel("tests flagged (%)", fontsize=6)
+        ax.tick_params(labelsize=5.5)
+    np.atleast_1d(axes)[0].set_ylabel("missed changes (%)", fontsize=6)
+    np.atleast_1d(axes)[0].legend(fontsize=5, loc="upper left", frameon=False)
+    fig.tight_layout(w_pad=0.6)
+    fig.savefig(out / "fig_tradeoff.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--main", default="results/challenge2019")
@@ -178,6 +216,7 @@ def main() -> None:
     tab_external(m, tabs)
     tab_panel(m, tabs)
     fig_online("configs/default.yaml", a.override, figs)
+    fig_tradeoff("configs/default.yaml", a.override, figs)
     print("tables and figure written")
 
 
