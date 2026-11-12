@@ -228,7 +228,7 @@ def fig_examples(cfg_path: str, override: str, out: Path) -> None:
         ax.text((lo + hi) / 2, 2.62, name, ha="center", va="bottom", fontsize=5.5, color=col)
     taus = view.taus
     label = {LOW: "low value", POTENTIAL: "potentially useful", HIGH: "high value"}
-    for k, (tier, j) in enumerate(picks):
+    for k, (_tier, j) in enumerate(picks):
         q = np.sort(view.quantiles[j])
         q05, q95 = np.interp([0.05, 0.95], taus, q)
         r = ev.iloc[j]
